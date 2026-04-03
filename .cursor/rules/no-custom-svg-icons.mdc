@@ -1,0 +1,10 @@
+---
+description: Never hand-write icon SVGs
+alwaysApply: true
+---
+
+# No Custom SVG Icons
+
+Do not create new inline `<svg>` icons.
+Use existing icon systems (e.g. Iconify/shared components) and swap icon names instead.
+If no existing icon works, ask first.

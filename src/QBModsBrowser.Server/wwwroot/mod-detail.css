@@ -1,0 +1,270 @@
+/* Page-local styles for mod details content and header chips. */
+.mod-content {
+    font-size: 13px;
+    line-height: 1.4;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+.mod-content img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 0.25rem;
+    margin: 0.25em 0;
+    display: inline-block;
+}
+.mod-content a {
+    color: #60a5fa;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+.mod-content a:hover {
+    color: #93bbfd;
+}
+.mod-content b, .mod-content strong {
+    color: #f3f4f6;
+    font-weight: 600;
+}
+.mod-content i, .mod-content em {
+    font-style: italic;
+}
+.mod-content u {
+    text-decoration: underline;
+}
+.mod-content h1, .mod-content h2, .mod-content h3,
+.mod-content h4, .mod-content h5, .mod-content h6 {
+    color: #f9fafb;
+    font-weight: 700;
+    margin: 0.75em 0 0.25em;
+}
+.mod-content h1 { font-size: 1.5rem; }
+.mod-content h2 { font-size: 1.3rem; }
+.mod-content h3 { font-size: 1.15rem; }
+.mod-content ul, .mod-content ol {
+    margin: 0.4em 0;
+    padding-left: 1.5em;
+}
+.mod-content ul { list-style: disc; }
+.mod-content ol { list-style: decimal; }
+.mod-content li { margin: 0.1em 0; }
+.mod-content blockquote, .mod-content .quoteheader + .quote {
+    border-left: 3px solid #4b5563;
+    padding: 0.5em 1em;
+    margin: 0.5em 0;
+    background: rgba(55, 65, 81, 0.3);
+    border-radius: 0 0.25rem 0.25rem 0;
+}
+.mod-content hr {
+    border-color: #374151;
+    margin: 0.75em 0;
+}
+.mod-content table {
+    border-collapse: collapse;
+    margin: 1em 0;
+}
+.mod-content td, .mod-content th {
+    border: 1px solid #4b5563;
+    padding: 0.4em 0.75em;
+}
+.mod-content code {
+    background: #1e293b;
+    padding: 0.15em 0.4em;
+    border-radius: 0.25rem;
+    font-size: 0.9em;
+}
+.mod-content pre {
+    background: #1e293b;
+    padding: 0.75em;
+    border-radius: 0.5rem;
+    overflow-x: auto;
+    margin: 0.5em 0;
+}
+
+/* Preserve font sizes from SMF BBCode. */
+.mod-content span[style*="font-size"],
+.mod-content .bbc_size {
+    display: inline;
+    line-height: 1.4;
+}
+
+/* Spoiler and dropdown sections from SMF. */
+.mod-content .sp-wrap {
+    margin: 1em 0;
+    border: 1px solid #374151;
+    border-radius: 0.5rem;
+    overflow: hidden;
+}
+.mod-content .sp-head {
+    background: #1f2937;
+    color: #e5e7eb;
+    padding: 0.6em 1em;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.95em;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    user-select: none;
+    transition: background 0.15s;
+}
+.mod-content .sp-head:hover {
+    background: #283548;
+}
+.mod-content .sp-head::after {
+    content: '▸';
+    font-size: 1.1em;
+    transition: transform 0.2s ease;
+}
+.mod-content .sp-wrap.open > .sp-head::after {
+    transform: rotate(90deg);
+}
+.mod-content .sp-body {
+    display: none;
+    background: rgba(17, 24, 39, 0.5);
+    border-top: 1px solid #374151;
+}
+.mod-content .sp-wrap.open > .sp-body {
+    display: flex;
+}
+.mod-content .sp-body .sp-collapse-bar {
+    width: 24px;
+    min-height: 100%;
+    flex-shrink: 0;
+    background: #374151;
+    cursor: pointer;
+    transition: background 0.15s;
+    border-radius: 0 0 0 0.35rem;
+}
+.mod-content .sp-body .sp-collapse-bar:hover {
+    background: #667eea;
+}
+.mod-content .sp-body .sp-body-content {
+    flex: 1;
+    min-width: 0;
+    padding: 1em;
+}
+.mod-content .sp-foot {
+    display: none;
+}
+
+/* Code blocks from forum content. */
+.mod-content .codeheader {
+    background: #1e293b;
+    padding: 0.4em 1em;
+    border-radius: 0.5rem 0.5rem 0 0;
+    font-size: 0.85em;
+    color: #9ca3af;
+    border: 1px solid #374151;
+    border-bottom: none;
+}
+.mod-content .block_code {
+    background: #1e293b;
+    padding: 1em;
+    border-radius: 0 0 0.5rem 0.5rem;
+    overflow-x: auto;
+    border: 1px solid #374151;
+    border-top: none;
+}
+.mod-content .block_code pre {
+    margin: 0;
+    padding: 0;
+    background: transparent;
+    border-radius: 0;
+}
+.mod-content .block_code code {
+    background: transparent;
+    padding: 0;
+    font-size: 0.85em;
+    color: #d1d5db;
+}
+
+/* Quote styling from forum content. */
+.mod-content .quoteheader {
+    font-size: 0.85em;
+    color: #9ca3af;
+    margin-bottom: 0;
+}
+.mod-content .quote {
+    border-left: 3px solid #4b5563;
+    padding: 0.5em 1em;
+    margin: 0 0 0.75em 0;
+    background: rgba(55, 65, 81, 0.3);
+    border-radius: 0 0.25rem 0.25rem 0;
+}
+
+/* Shields.io badges should render inline similarly to forum posts. */
+.mod-content img[src*="shields.io"],
+.mod-content img[src*="badge"],
+.mod-content img[alt*="Download"],
+.mod-content img[alt*="View"],
+.mod-content img[alt*="GitHub"] {
+    border-radius: 0.25rem;
+    margin: 0.25rem 0.15rem;
+    vertical-align: middle;
+    display: inline-block;
+}
+
+.mod-content img[src*="ko-fi"] {
+    max-width: 143px;
+    height: auto;
+}
+.category-chip-icon {
+    display: inline-flex;
+    width: 1.15rem !important;
+    height: 1.15rem !important;
+    font-size: 1.15rem !important;
+    line-height: 1;
+    align-items: center;
+    justify-content: center;
+    vertical-align: middle;
+}
+.favorite-star-icon {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    line-height: 0;
+    width: 1.35rem !important;
+    height: 1.35rem !important;
+    font-size: 1.35rem !important;
+}
+.detail-category-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    box-sizing: border-box;
+    min-height: 1.75rem;
+    padding: 0 0.5rem;
+    font-size: 0.75rem;
+    line-height: 1;
+}
+.detail-version-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    height: 1.75rem;
+    min-width: 2.25rem;
+    padding: 0 0.5rem;
+    font-size: 0.75rem;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+}
+.mod-detail-header .detail-category-chip {
+    background: rgba(0, 0, 0, 0.22);
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    color: #f8fafc;
+}
+.mod-detail-header .detail-version-pill {
+    background: rgba(255, 255, 255, 0.18);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    color: #e0e7ff;
+}
+.mod-detail-header .detail-meta-sep {
+    display: inline-block;
+    color: rgba(255, 255, 255, 0.72);
+    font-weight: 800;
+    font-size: 1.2em;
+    line-height: 1;
+    padding: 0 0.12em;
+    vertical-align: -0.06em;
+    user-select: none;
+}

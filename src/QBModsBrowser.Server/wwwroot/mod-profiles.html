@@ -1,0 +1,182 @@
+<!-- Mod Profiles section injected into the header bar -->
+<div class="flex items-center gap-3 flex-1 min-w-0 justify-center">
+    <!-- Left controls: bulk enable shortcuts -->
+    <div class="flex flex-col gap-1">
+        <div class="relative group/all">
+            <button @click="enableAllInstalledMods()"
+                class="profile-action-btn w-6 h-6 rounded border border-white/20 grid place-items-center text-indigo-200/70 hover:text-white hover:bg-white/10 transition"
+                :disabled="profileLoading">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+            </button>
+            <span class="pointer-events-none absolute top-full left-1/2 z-50 mt-1 -translate-x-1/2 whitespace-nowrap rounded bg-gray-900 px-2 py-0.5 text-[10px] font-medium text-white opacity-0 shadow-lg transition-opacity duration-0 group-hover/all:opacity-100">Enable all installed mods</span>
+        </div>
+        <div class="relative group/fav">
+            <button @click="enableAllFavoritedInstalledMods()"
+                class="profile-action-btn w-6 h-6 rounded border border-white/20 grid place-items-center text-indigo-200/70 hover:text-white hover:bg-white/10 transition"
+                :disabled="profileLoading">
+                <iconify-icon icon="mdi:star" class="text-[0.95rem]"></iconify-icon>
+            </button>
+            <span class="pointer-events-none absolute top-full left-1/2 z-50 mt-1 -translate-x-1/2 whitespace-nowrap rounded bg-gray-900 px-2 py-0.5 text-[10px] font-medium text-white opacity-0 shadow-lg transition-opacity duration-0 group-hover/fav:opacity-100">Enable installed favorited mods</span>
+        </div>
+    </div>
+
+    <!-- Empty state: no profiles exist yet -->
+    <template x-if="profileStore.profiles.length === 0">
+        <div class="flex items-center gap-2">
+            <span class="text-[10px] text-indigo-200/70 uppercase tracking-wider">Mod Profiles</span>
+            <button @click="createProfile()"
+                class="profile-add-btn flex items-center justify-center w-7 h-7 rounded-md bg-white/10 hover:bg-white/20 text-white transition"
+                title="Create a new mod profile"
+                :disabled="profileLoading">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                </svg>
+            </button>
+        </div>
+    </template>
+
+    <!-- Profiles exist -->
+    <template x-if="profileStore.profiles.length > 0">
+        <div class="flex items-stretch gap-3 min-w-0">
+
+            <!-- Main selected profile section: 2-row layout -->
+            <template x-if="selectedProfile()">
+                <div class="profile-main-section h-full grid grid-cols-[minmax(0,1fr)_auto_auto] items-stretch gap-2 px-2 py-1.5 rounded-lg border transition-all"
+                    :class="profileStore.state.isEquipped
+                        ? 'profile-equipped border-emerald-400/70 bg-emerald-950/30'
+                        : 'border-white/15 bg-white/5'">
+
+                    <!-- Column 1: name on row 1, mod count on row 2 -->
+                    <div class="flex flex-col justify-between gap-1 min-w-0">
+                    <div class="flex items-center gap-2 min-w-0">
+                        <!-- Profile name (inline-editable) -->
+                        <template x-if="!profileRenaming">
+                            <span class="text-xs font-semibold text-white truncate max-w-[9rem] cursor-pointer"
+                                @dblclick="profileRenaming = true; $nextTick(() => { const el = $el.nextElementSibling; if(el) { el.focus(); el.select(); } })"
+                                x-text="selectedProfile().name"
+                                title="Double-click to rename"></span>
+                        </template>
+                        <template x-if="profileRenaming">
+                            <input type="text" class="text-xs font-semibold text-white bg-transparent border-b border-white/40 outline-none w-28"
+                                :value="selectedProfile().name"
+                                @blur="onProfileNameBlur($event, selectedProfile().id)"
+                                @keydown.enter="$event.target.blur()"
+                                @keydown.escape="profileRenaming = false">
+                        </template>
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                        <span class="text-[10px] text-indigo-200/80 whitespace-nowrap px-1.5 py-0.5 rounded bg-white/10 border border-white/10 font-mono">
+                            <span class="text-xs font-bold text-indigo-100" x-text="selectedProfile().modIds.length"></span>
+                            <span class="text-[10px] text-indigo-200/70 ml-0.5">mods</span>
+                        </span>
+
+                        <!-- Cleanup warning (red triangle + count) -->
+                        <template x-if="cleanupCount(selectedProfile().id) > 0">
+                            <div class="relative group cursor-pointer" @click="dismissCleanup(selectedProfile().id)">
+                                <div class="flex items-center gap-0.5">
+                                    <svg class="w-3.5 h-3.5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.168 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 6a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 6zm0 9a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"/>
+                                    </svg>
+                                    <span class="text-[10px] font-bold text-red-400" x-text="cleanupCount(selectedProfile().id)"></span>
+                                </div>
+                                <span class="pointer-events-none absolute top-full left-1/2 z-50 mt-1 -translate-x-1/2 w-52 rounded bg-gray-900 px-2 py-1 text-[10px] font-medium text-white opacity-0 shadow-lg transition-opacity duration-0 group-hover:opacity-100 text-center"
+                                    x-text="cleanupCount(selectedProfile().id) + ' mod(s) in this profile aren\'t found locally anymore and will be cleared. Click to dismiss.'"></span>
+                            </div>
+                        </template>
+                    </div>
+                    </div>
+
+                    <!-- Column 2: 2x2 square (warning, add, overwrite, delete) -->
+                    <div class="grid grid-cols-2 grid-rows-2 gap-1">
+                        <!-- Add enabled mods -->
+                        <div class="relative group/add">
+                            <button @click="addEnabledToProfile()"
+                                class="profile-action-btn w-6 h-6 rounded border border-white/20 grid place-items-center text-indigo-200/70 hover:text-white hover:bg-white/10 transition"
+                                :disabled="profileLoading">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                                </svg>
+                            </button>
+                            <span class="pointer-events-none absolute top-full left-1/2 z-50 mt-1 -translate-x-1/2 whitespace-nowrap rounded bg-gray-900 px-2 py-0.5 text-[10px] font-medium text-white opacity-0 shadow-lg transition-opacity duration-0 group-hover/add:opacity-100">Add currently enabled mods to profile</span>
+                        </div>
+
+                        <!-- Warning triangle -->
+                        <div class="relative group/warn w-6 h-6 rounded border border-amber-300/25 bg-amber-500/5 grid place-items-center">
+                            <svg class="w-3.5 h-3.5 text-amber-400/70 hover:text-amber-400 transition cursor-help" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.168 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 6a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 6zm0 9a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"/>
+                            </svg>
+                            <span class="pointer-events-none absolute top-full left-1/2 z-50 mt-1 -translate-x-1/2 w-44 rounded bg-gray-900 px-2 py-1 text-[10px] font-medium text-white opacity-0 shadow-lg transition-opacity duration-0 group-hover/warn:opacity-100 text-center">Equipping will overwrite which mods are enabled</span>
+                        </div>
+
+                        <!-- Overwrite -->
+                        <div class="relative group/overwrite">
+                            <button @click="overwriteProfile()"
+                                class="profile-action-btn w-6 h-6 rounded border border-white/20 grid place-items-center text-indigo-200/70 hover:text-white hover:bg-white/10 transition"
+                                :disabled="profileLoading">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m14.836 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0A8.003 8.003 0 015.664 15m13.755 0H15"/>
+                                </svg>
+                            </button>
+                            <span class="pointer-events-none absolute top-full left-1/2 z-50 mt-1 -translate-x-1/2 whitespace-nowrap rounded bg-gray-900 px-2 py-0.5 text-[10px] font-medium text-white opacity-0 shadow-lg transition-opacity duration-0 group-hover/overwrite:opacity-100">Overwrite profile with currently enabled mods</span>
+                        </div>
+
+                        <!-- Delete -->
+                        <div class="relative group/del">
+                            <button @click="deleteProfile(selectedProfile().id)"
+                                class="profile-action-btn w-6 h-6 rounded border border-red-400/25 grid place-items-center text-red-400/60 hover:text-red-400 hover:bg-red-500/10 transition"
+                                :disabled="profileLoading">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                </svg>
+                            </button>
+                            <span class="pointer-events-none absolute top-full left-1/2 z-50 mt-1 -translate-x-1/2 whitespace-nowrap rounded bg-gray-900 px-2 py-0.5 text-[10px] font-medium text-white opacity-0 shadow-lg transition-opacity duration-0 group-hover/del:opacity-100">Delete this profile</span>
+                        </div>
+                    </div>
+
+                    <!-- Column 3: full-height equip/equipped button (fixed width) -->
+                    <div class="relative group/equip self-stretch">
+                        <button @click="profileStore.state.isEquipped ? unequipProfile() : equipProfile()"
+                            class="profile-equip-btn h-full min-h-[3.1rem] w-20 flex items-center justify-center px-2 rounded-md text-[11px] font-bold transition-all"
+                            :class="profileStore.state.isEquipped
+                                ? 'bg-emerald-500 text-white hover:bg-emerald-600 shadow-sm shadow-emerald-500/30'
+                                : 'bg-white/10 text-gray-200 hover:bg-white/20 border border-white/20'"
+                            :disabled="profileLoading">
+                            <span x-text="profileStore.state.isEquipped ? 'Equipped' : 'Equip'"></span>
+                        </button>
+                        <span class="pointer-events-none absolute top-full left-1/2 z-50 mt-1 -translate-x-1/2 whitespace-nowrap rounded bg-gray-900 px-2 py-0.5 text-[10px] font-medium text-white opacity-0 shadow-lg transition-opacity duration-0 group-hover/equip:opacity-100"
+                            x-text="profileStore.state.isEquipped ? 'Mod enable/disables will stop syncing' : `Enables only this profile's mods and tracks changes`"></span>
+                    </div>
+
+                </div>
+            </template>
+
+            <!-- Inactive profiles grid + add button -->
+            <div class="flex items-center gap-2 flex-wrap max-w-[22rem]">
+                <template x-for="p in inactiveProfiles()" :key="p.id">
+                    <button @click="selectProfile(p.id)"
+                        class="profile-chip flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-white/8 hover:bg-white/15 border border-white/10 hover:border-white/30 text-xs text-gray-300 transition cursor-pointer max-w-[9rem]"
+                        :disabled="profileLoading">
+                        <span class="truncate font-medium" x-text="p.name"></span>
+                        <span class="text-indigo-200/40 shrink-0">-</span>
+                        <span class="text-indigo-200/60 shrink-0 text-[11px]" x-text="p.modIds.length"></span>
+                    </button>
+                </template>
+
+                <!-- Add new profile button -->
+                <button @click="createProfile()"
+                    class="profile-add-btn flex items-center justify-center w-7 h-7 rounded-md bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition"
+                    title="Create a new mod profile"
+                    :disabled="profileLoading">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                    </svg>
+                </button>
+            </div>
+
+        </div>
+    </template>
+
+</div>

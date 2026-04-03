@@ -1,0 +1,479 @@
+<div x-data id="dlk-popup-root">
+    <div x-show="$store.dlk.open" x-cloak
+         class="dlk-overlay fixed inset-0 z-50 flex items-center justify-center"
+         @keydown.escape.window="$store.dlk.open && $store.dlk.close()">
+
+        <div class="dlk-backdrop absolute inset-0 bg-black/70" @click="$store.dlk.close()"></div>
+
+        <div class="dlk-panel relative flex flex-col rounded-xl border border-gray-600 bg-surface shadow-2xl"
+             x-show="$store.dlk.open"
+             x-transition:enter="transition ease-out duration-200"
+             x-transition:enter-start="opacity-0 scale-95"
+             x-transition:enter-end="opacity-100 scale-100"
+             x-transition:leave="transition ease-in duration-150"
+             x-transition:leave-start="opacity-100 scale-100"
+             x-transition:leave-end="opacity-0 scale-95">
+
+            <!-- Header -->
+            <div class="dlk-header flex items-center gap-3 border-b border-gray-700 px-5 py-3">
+                <iconify-icon icon="heroicons:map" width="20" height="20" class="text-indigo-400 shrink-0"></iconify-icon>
+                <h2 class="flex-1 min-w-0 text-base font-semibold text-white truncate">
+                    Linkage Report: <span x-text="$store.dlk.modName"></span>
+                </h2>
+                <span class="dlk-topic-badge shrink-0">Topic <span x-text="$store.dlk.topicId"></span></span>
+                <button @click="$store.dlk.close()"
+                        class="shrink-0 rounded p-1 text-gray-400 transition hover:bg-white/10 hover:text-white">
+                    <iconify-icon icon="heroicons:x-mark" width="20" height="20"></iconify-icon>
+                </button>
+            </div>
+
+            <!-- Body -->
+            <div class="dlk-body flex-1 overflow-y-auto px-5 py-4 space-y-5">
+
+                <!-- Loading -->
+                <div x-show="$store.dlk.loading" class="flex items-center justify-center py-12 text-gray-400 gap-2">
+                    <iconify-icon icon="heroicons:arrow-path" class="animate-spin" width="20" height="20"></iconify-icon>
+                    Loading data linkage...
+                </div>
+
+                <template x-if="$store.dlk.data && !$store.dlk.loading">
+                    <div class="space-y-5">
+
+                        <!-- Connection overview -->
+                        <div class="dlk-diagram rounded-lg border border-gray-700 bg-surface-alt p-4">
+                            <h3 class="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3">Connection Overview</h3>
+                            <div class="dlk-overview-head">
+                                <div class="dlk-hub-node">
+                                    <iconify-icon icon="heroicons:link" width="18" height="18"></iconify-icon>
+                                    <span class="font-mono font-bold" x-text="'Topic ' + $store.dlk.data.topicId"></span>
+                                </div>
+                                <a :href="$store.dlk.data.forumUrl" target="_blank" rel="noopener"
+                                   class="text-[10px] text-indigo-400 hover:text-indigo-300 truncate max-w-[24rem] block"
+                                   x-text="$store.dlk.data.forumUrl"></a>
+                            </div>
+
+                            <div class="dlk-source-grid">
+                                <div class="dlk-source-chip" :class="$store.dlk.data.forumScrape.exists ? 'dlk-source-active' : 'dlk-source-missing'">
+                                    <a href="#dlk-card-forum-scrape" class="dlk-source-link" @click.prevent="$store.dlk.focusCard('dlk-card-forum-scrape')">
+                                        <iconify-icon icon="heroicons:document-text" width="14" height="14"></iconify-icon>
+                                        <span>Forum Scrape</span>
+                                        <span class="dlk-source-dot"></span>
+                                    </a>
+                                </div>
+                                <div class="dlk-source-chip" :class="$store.dlk.data.modRepo.exists ? 'dlk-source-active' : 'dlk-source-missing'">
+                                    <a href="#dlk-card-mod-repo" class="dlk-source-link" @click.prevent="$store.dlk.focusCard('dlk-card-mod-repo')">
+                                        <iconify-icon icon="heroicons:cloud" width="14" height="14"></iconify-icon>
+                                        <span>ModRepo</span>
+                                        <span class="dlk-source-dot"></span>
+                                    </a>
+                                </div>
+                                <div class="dlk-source-chip" :class="$store.dlk.data.localMods.exists ? 'dlk-source-active' : 'dlk-source-missing'">
+                                    <a href="#dlk-card-local-mods" class="dlk-source-link" @click.prevent="$store.dlk.focusCard('dlk-card-local-mods')">
+                                        <iconify-icon icon="heroicons:folder" width="14" height="14"></iconify-icon>
+                                        <span>Local Mods</span>
+                                        <span class="dlk-source-dot"></span>
+                                    </a>
+                                </div>
+                                <div class="dlk-source-chip" :class="$store.dlk.data.versionChecker.exists ? 'dlk-source-active' : 'dlk-source-missing'">
+                                    <a href="#dlk-card-version-checker" class="dlk-source-link" @click.prevent="$store.dlk.focusCard('dlk-card-version-checker')">
+                                        <iconify-icon icon="heroicons:arrow-path" width="14" height="14"></iconify-icon>
+                                        <span>Version Checker</span>
+                                        <span class="dlk-source-dot"></span>
+                                    </a>
+                                </div>
+                                <div class="dlk-source-chip" :class="$store.dlk.data.topicArchiveMap.exists ? 'dlk-source-active' : 'dlk-source-missing'">
+                                    <a href="#dlk-card-archive-map" class="dlk-source-link" @click.prevent="$store.dlk.focusCard('dlk-card-archive-map')">
+                                        <iconify-icon icon="heroicons:archive-box" width="14" height="14"></iconify-icon>
+                                        <span>Archive Map</span>
+                                        <span class="dlk-source-dot"></span>
+                                    </a>
+                                </div>
+                                <div class="dlk-source-chip" :class="$store.dlk.data.modMatches.exists ? 'dlk-source-active' : 'dlk-source-missing'">
+                                    <a href="#dlk-card-match-cache" class="dlk-source-link" @click.prevent="$store.dlk.focusCard('dlk-card-match-cache')">
+                                        <iconify-icon icon="heroicons:puzzle-piece" width="14" height="14"></iconify-icon>
+                                        <span>Match Cache</span>
+                                        <span class="dlk-source-dot"></span>
+                                    </a>
+                                </div>
+                                <div class="dlk-source-chip" :class="$store.dlk.data.assumedDownloads.exists ? 'dlk-source-active' : 'dlk-source-missing'">
+                                    <a href="#dlk-card-assumed-downloads" class="dlk-source-link" @click.prevent="$store.dlk.focusCard('dlk-card-assumed-downloads')">
+                                        <iconify-icon icon="heroicons:magnifying-glass" width="14" height="14"></iconify-icon>
+                                        <span>Assumed DLs</span>
+                                        <span class="dlk-source-dot"></span>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Source cards grid -->
+                        <div class="dlk-cards-grid">
+
+                            <!-- 1. Forum Scrape -->
+                            <div id="dlk-card-forum-scrape" class="dlk-card" :class="$store.dlk.data.forumScrape.exists ? 'dlk-card-present' : 'dlk-card-absent'">
+                                <div class="dlk-card-header">
+                                    <iconify-icon icon="heroicons:document-text" width="16" height="16"></iconify-icon>
+                                    <span class="font-semibold">Forum Scrape</span>
+                                    <span class="dlk-status-badge" :class="$store.dlk.data.forumScrape.exists ? 'dlk-badge-ok' : 'dlk-badge-none'" x-text="$store.dlk.data.forumScrape.exists ? 'Present' : 'Missing'"></span>
+                                </div>
+                                <div class="dlk-card-connection">
+                                    <iconify-icon icon="heroicons:arrow-right" width="12" height="12"></iconify-icon>
+                                    <span>
+                                        <template x-if="$store.dlk.data.forumScrape.connectionMethod === 'Direct topicId field in scraped data'">
+                                            <span>Direct <span class="dlk-inline-code">topicId</span> field in scraped data</span>
+                                        </template>
+                                        <span x-show="$store.dlk.data.forumScrape.connectionMethod !== 'Direct topicId field in scraped data'"
+                                            x-text="$store.dlk.data.forumScrape.connectionMethod"></span>
+                                    </span>
+                                </div>
+                                <div class="dlk-card-storage">
+                                    <iconify-icon icon="heroicons:server" width="12" height="12" class="shrink-0 mt-0.5"></iconify-icon>
+                                    <div class="min-w-0">
+                                        <div class="dlk-path" x-text="$store.dlk.data.forumScrape.storagePaths.index"></div>
+                                        <div class="dlk-path" x-show="$store.dlk.data.forumScrape.storagePaths.detail" x-text="$store.dlk.data.forumScrape.storagePaths.detail"></div>
+                                        <div class="text-amber-400/80 text-[10px]" x-show="!$store.dlk.data.forumScrape.storagePaths.detail">detail.json not on disk</div>
+                                    </div>
+                                </div>
+                                <template x-if="$store.dlk.data.forumScrape.indexData">
+                                    <div class="dlk-card-data">
+                                        <h4 class="dlk-data-heading">Index Entry</h4>
+                                        <div class="dlk-kv"><span class="dlk-k">title</span><span class="dlk-v" x-text="$store.dlk.data.forumScrape.indexData.title"></span></div>
+                                        <div class="dlk-kv"><span class="dlk-k">category</span><span class="dlk-v" x-text="$store.dlk.data.forumScrape.indexData.category"></span></div>
+                                        <div class="dlk-kv"><span class="dlk-k">gameVersion</span><span class="dlk-v" :class="$store.dlk.remoteVersionWarningClass($store.dlk.data.forumScrape.indexData.gameVersion, 'game')" x-text="$store.dlk.data.forumScrape.indexData.gameVersion || '(none)'"></span></div>
+                                        <div class="dlk-kv"><span class="dlk-k">author</span><span class="dlk-v" x-text="$store.dlk.data.forumScrape.indexData.author"></span></div>
+                                        <div class="dlk-kv"><span class="dlk-k">inModIndex</span><span class="dlk-v" x-text="$store.dlk.data.forumScrape.indexData.inModIndex"></span></div>
+                                        <div class="dlk-kv"><span class="dlk-k">isArchived</span><span class="dlk-v" x-text="$store.dlk.data.forumScrape.indexData.isArchivedModIndex"></span></div>
+                                        <div class="dlk-kv"><span class="dlk-k">sourceBoard</span><span class="dlk-v" x-text="$store.dlk.data.forumScrape.indexData.sourceBoard ?? '(none)'"></span></div>
+                                        <div class="dlk-kv"><span class="dlk-k">replies / views</span><span class="dlk-v" x-text="$store.dlk.data.forumScrape.indexData.replies + ' / ' + $store.dlk.data.forumScrape.indexData.views"></span></div>
+                                        <div class="dlk-kv"><span class="dlk-k">createdDate</span><span class="dlk-v" x-text="$store.dlk.data.forumScrape.indexData.createdDate || '(none)'"></span></div>
+                                        <div class="dlk-kv"><span class="dlk-k">lastPostDate</span><span class="dlk-v" x-text="$store.dlk.data.forumScrape.indexData.lastPostDate || '(none)'"></span></div>
+                                        <div class="dlk-kv"><span class="dlk-k">scrapedAt</span><span class="dlk-v" x-text="$store.dlk.data.forumScrape.indexData.scrapedAtDisplay || '(none)'"></span></div>
+                                    </div>
+                                </template>
+                                <template x-if="$store.dlk.data.forumScrape.detailData">
+                                    <div class="dlk-card-data">
+                                        <h4 class="dlk-data-heading">Detail Data</h4>
+                                        <div class="dlk-kv"><span class="dlk-k">postDate</span><span class="dlk-v" x-text="$store.dlk.data.forumScrape.detailData.postDate || '(none)'"></span></div>
+                                        <div class="dlk-kv"><span class="dlk-k">lastEditDate</span><span class="dlk-v" x-text="$store.dlk.data.forumScrape.detailData.lastEditDate || '(none)'"></span></div>
+                                        <div class="dlk-kv"><span class="dlk-k">authorTitle</span><span class="dlk-v" x-text="$store.dlk.data.forumScrape.detailData.authorTitle || '(none)'"></span></div>
+                                        <div class="dlk-kv"><span class="dlk-k">images</span><span class="dlk-v" x-text="$store.dlk.data.forumScrape.detailData.imageCount + ' scraped'"></span></div>
+                                        <div class="dlk-kv"><span class="dlk-k">links</span><span class="dlk-v" x-text="$store.dlk.data.forumScrape.detailData.linkCount + ' found'"></span></div>
+                                        <div class="dlk-kv"><span class="dlk-k">isPlaceholder</span><span class="dlk-v" x-text="$store.dlk.data.forumScrape.detailData.isPlaceholderDetail"></span></div>
+                                    </div>
+                                </template>
+                                <div x-show="!$store.dlk.data.forumScrape.exists" class="dlk-card-empty">No scraped data found for this topic ID</div>
+                            </div>
+
+                            <!-- 2. ModRepo -->
+                            <div id="dlk-card-mod-repo" class="dlk-card" :class="$store.dlk.data.modRepo.exists ? 'dlk-card-present' : 'dlk-card-absent'">
+                                <div class="dlk-card-header">
+                                    <iconify-icon icon="heroicons:cloud" width="16" height="16"></iconify-icon>
+                                    <span class="font-semibold">ModRepo.json</span>
+                                    <span class="dlk-status-badge" :class="$store.dlk.data.modRepo.exists ? 'dlk-badge-ok' : 'dlk-badge-none'" x-text="$store.dlk.data.modRepo.exists ? 'Matched' : 'Not found'"></span>
+                                </div>
+                                <div class="dlk-card-connection">
+                                    <iconify-icon icon="heroicons:arrow-right" width="12" height="12"></iconify-icon>
+                                    <span>
+                                        <template x-if="$store.dlk.data.modRepo.connectionMethod === 'Urls.Forum parsed for ?topic= parameter'">
+                                            <span><span class="dlk-inline-code">Urls.Forum</span> parsed for <span class="dlk-inline-code">?topic=</span> parameter</span>
+                                        </template>
+                                        <span x-show="$store.dlk.data.modRepo.connectionMethod !== 'Urls.Forum parsed for ?topic= parameter'"
+                                            x-text="$store.dlk.data.modRepo.connectionMethod"></span>
+                                    </span>
+                                </div>
+                                <div class="dlk-card-storage">
+                                    <iconify-icon icon="heroicons:server" width="12" height="12" class="shrink-0 mt-0.5"></iconify-icon>
+                                    <div class="min-w-0">
+                                        <div class="dlk-path" x-text="$store.dlk.data.modRepo.storagePath"></div>
+                                        <div class="text-[10px] text-gray-500">Source: <a :href="$store.dlk.data.modRepo.sourceUrl" target="_blank" rel="noopener" class="text-indigo-400 hover:text-indigo-300">GitHub</a></div>
+                                    </div>
+                                </div>
+                                <template x-if="$store.dlk.data.modRepo.data">
+                                    <div class="dlk-card-data">
+                                        <div class="dlk-kv"><span class="dlk-k">name</span><span class="dlk-v" x-text="$store.dlk.data.modRepo.data.name"></span></div>
+                                        <div class="dlk-kv"><span class="dlk-k">modVersion</span><span class="dlk-v" :class="$store.dlk.remoteVersionWarningClass($store.dlk.data.modRepo.data.modVersion, 'mod')" x-text="$store.dlk.data.modRepo.data.modVersion || '(none)'"></span></div>
+                                        <div class="dlk-kv"><span class="dlk-k">gameVersionReq</span><span class="dlk-v" :class="$store.dlk.remoteVersionWarningClass($store.dlk.data.modRepo.data.gameVersionReq, 'game')" x-text="$store.dlk.data.modRepo.data.gameVersionReq || '(none)'"></span></div>
+                                        <div class="dlk-kv"><span class="dlk-k">authors</span><span class="dlk-v" x-text="($store.dlk.data.modRepo.data.authorsList || []).join(', ') || '(none)'"></span></div>
+                                        <div class="dlk-kv"><span class="dlk-k">categories</span><span class="dlk-v" x-text="($store.dlk.data.modRepo.data.categories || []).join(', ') || '(none)'"></span></div>
+                                        <div class="dlk-kv"><span class="dlk-k">summary</span><span class="dlk-v dlk-v-wrap" x-text="$store.dlk.data.modRepo.data.summary || '(none)'"></span></div>
+                                        <div class="dlk-kv"><span class="dlk-k">sources</span><span class="dlk-v" x-text="($store.dlk.data.modRepo.data.sources || []).join(', ') || '(none)'"></span></div>
+                                        <div class="dlk-kv"><span class="dlk-k">dateCreated</span><span class="dlk-v" x-text="$store.dlk.data.modRepo.data.dateTimeCreated || '(none)'"></span></div>
+                                        <div class="dlk-kv"><span class="dlk-k">dateEdited</span><span class="dlk-v" x-text="$store.dlk.data.modRepo.data.dateTimeEdited || '(none)'"></span></div>
+                                        <template x-if="$store.dlk.data.modRepo.data.urls">
+                                            <div class="mt-2">
+                                                <h5 class="text-[10px] uppercase tracking-wide text-gray-500 mb-1">URLs</h5>
+                                                <template x-for="key in Object.keys($store.dlk.data.modRepo.data.urls)" :key="key">
+                                                    <div class="dlk-kv">
+                                                        <span class="dlk-k" x-text="key"></span>
+                                                        <a :href="$store.dlk.data.modRepo.data.urls[key]" target="_blank" rel="noopener" class="dlk-v text-indigo-400 hover:text-indigo-300 truncate" x-text="$store.dlk.data.modRepo.data.urls[key]"></a>
+                                                    </div>
+                                                </template>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </template>
+                                <div x-show="!$store.dlk.data.modRepo.exists" class="dlk-card-empty">No ModRepo entry matched this topic's forum URL</div>
+                            </div>
+
+                            <!-- 3. Local Mods -->
+                            <div id="dlk-card-local-mods" class="dlk-card" :class="$store.dlk.data.localMods.exists ? 'dlk-card-present' : 'dlk-card-absent'">
+                                <div class="dlk-card-header">
+                                    <iconify-icon icon="heroicons:folder" width="16" height="16"></iconify-icon>
+                                    <span class="font-semibold">Local Mods</span>
+                                    <span class="dlk-status-badge" :class="$store.dlk.data.localMods.exists ? 'dlk-badge-ok' : 'dlk-badge-none'" x-text="$store.dlk.data.localMods.exists ? ($store.dlk.data.localMods.data.length + ' matched') : 'Not installed'"></span>
+                                </div>
+                                <div class="dlk-card-connection">
+                                    <iconify-icon icon="heroicons:arrow-right" width="12" height="12"></iconify-icon>
+                                    <div class="text-[10px] space-y-0.5">
+                                        <template x-for="m in $store.dlk.data.localMods.connectionMethods" :key="m">
+                                            <div>
+                                                <template x-if="m === 'VersionChecker.ModThreadId inside .version file'">
+                                                    <span><span class="dlk-inline-code">VersionChecker.ModThreadId</span> inside <span class="dlk-inline-code">.version</span> file</span>
+                                                </template>
+                                                <template x-if="m === 'Persisted mod-matches.json (modId -> topicId)'">
+                                                    <span>Persisted <span class="dlk-inline-code">mod-matches.json</span> (<span class="dlk-inline-code">modId</span> -> <span class="dlk-inline-code">topicId</span>)</span>
+                                                </template>
+                                                <template x-if="m === 'NexusId cross-reference via ModRepo URL'">
+                                                    <span><span class="dlk-inline-code">NexusId</span> cross-reference via <span class="dlk-inline-code">ModRepo URL</span></span>
+                                                </template>
+                                                <span x-show="m !== 'VersionChecker.ModThreadId inside .version file' && m !== 'Persisted mod-matches.json (modId -> topicId)' && m !== 'NexusId cross-reference via ModRepo URL'"
+                                                    x-text="m"></span>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </div>
+                                <div class="dlk-card-storage">
+                                    <iconify-icon icon="heroicons:server" width="12" height="12" class="shrink-0 mt-0.5"></iconify-icon>
+                                    <div class="dlk-path" x-text="$store.dlk.data.localMods.storagePath"></div>
+                                </div>
+                                <template x-if="$store.dlk.data.localMods.exists">
+                                    <div class="dlk-card-data space-y-3">
+                                        <template x-for="lm in $store.dlk.data.localMods.data" :key="lm.modId">
+                                            <div class="dlk-local-mod-block">
+                                                <div class="flex items-center gap-2 mb-1">
+                                                    <span class="dlk-match-method" x-text="lm.matchMethod"></span>
+                                                    <span class="dlk-installed-badge" :class="$store.dlk.isDownloadedViaQB(lm.modId) ? 'dlk-badge-qb' : ''" x-text="$store.dlk.isDownloadedViaQB(lm.modId) ? 'Downloaded via QBMBAMM' : 'Manual / external install'"></span>
+                                                </div>
+                                                <h5 class="text-[10px] uppercase tracking-wide text-indigo-400/70 mb-1">mod_info.json (local folder)</h5>
+                                                <div class="dlk-kv"><span class="dlk-k">modId</span><span class="dlk-v font-mono" x-text="lm.modId"></span></div>
+                                                <div class="dlk-kv"><span class="dlk-k">name</span><span class="dlk-v" x-text="lm.name"></span></div>
+                                                <div class="dlk-kv"><span class="dlk-k">author</span><span class="dlk-v" x-text="lm.author || '(none)'"></span></div>
+                                                <div class="dlk-kv"><span class="dlk-k">version</span><span class="dlk-v font-mono" :class="$store.dlk.localVersionWarningClass(lm.version, 'mod')" x-text="lm.version || '(none)'"></span></div>
+                                                <div class="dlk-kv"><span class="dlk-k">gameVersion</span><span class="dlk-v font-mono" :class="$store.dlk.localVersionWarningClass(lm.gameVersion, 'game')" x-text="lm.gameVersion || '(none)'"></span></div>
+                                                <div class="dlk-kv"><span class="dlk-k">folder</span><span class="dlk-v font-mono text-[10px]" x-text="lm.folderPath"></span></div>
+                                                <div class="dlk-kv"><span class="dlk-k">enabled</span><span class="dlk-v" :class="lm.isEnabled ? 'text-emerald-400' : 'text-red-400'" x-text="lm.isEnabled"></span></div>
+                                                <div class="dlk-kv"><span class="dlk-k">utility</span><span class="dlk-v" x-text="lm.isUtility"></span></div>
+                                                <div class="dlk-kv" x-show="lm.description"><span class="dlk-k">description</span><span class="dlk-v dlk-v-wrap" x-text="lm.description"></span></div>
+                                                <template x-if="lm.dependencies && lm.dependencies.length > 0">
+                                                    <div class="mt-1">
+                                                        <span class="dlk-k">dependencies</span>
+                                                        <template x-for="dep in lm.dependencies" :key="dep.id">
+                                                            <span class="dlk-dep-chip" x-text="(dep.name || dep.id) + (dep.version ? ' ' + dep.version : '')"></span>
+                                                        </template>
+                                                    </div>
+                                                </template>
+                                                <template x-if="lm.versionChecker">
+                                                    <div class="mt-2 pl-2 border-l-2 border-indigo-500/30">
+                                                        <h5 class="text-[10px] uppercase tracking-wide text-indigo-400/70 mb-1">Version Checker (local .version file)</h5>
+                                                        <div class="dlk-kv"><span class="dlk-k">modThreadId</span><span class="dlk-v font-mono" :class="String(lm.versionChecker.modThreadId) === String($store.dlk.data.topicId) ? 'text-emerald-400' : 'text-amber-400'" x-text="lm.versionChecker.modThreadId || '(none)'"></span></div>
+                                                        <div class="dlk-kv"><span class="dlk-k">modNexusId</span><span class="dlk-v font-mono" x-text="lm.versionChecker.modNexusId || '(none)'"></span></div>
+                                                        <div class="dlk-kv"><span class="dlk-k">modVersion</span><span class="dlk-v font-mono" x-text="lm.versionChecker.modVersion || '(none)'"></span></div>
+                                                        <div class="dlk-kv"><span class="dlk-k">masterVersionFile</span><span class="dlk-v text-[10px] truncate" x-text="lm.versionChecker.masterVersionFile || '(none)'"></span></div>
+                                                        <div class="dlk-kv"><span class="dlk-k">directDownloadURL</span><span class="dlk-v text-[10px] truncate" x-text="lm.versionChecker.directDownloadURL || '(none)'"></span></div>
+                                                    </div>
+                                                </template>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </template>
+                                <div x-show="!$store.dlk.data.localMods.exists" class="dlk-card-empty">No local mod matched this topic via any method</div>
+                            </div>
+
+                            <!-- 4. Version Checker (remote results) -->
+                            <div id="dlk-card-version-checker" class="dlk-card" :class="$store.dlk.data.versionChecker.exists ? 'dlk-card-present' : 'dlk-card-absent'">
+                                <div class="dlk-card-header">
+                                    <iconify-icon icon="heroicons:arrow-path" width="16" height="16"></iconify-icon>
+                                    <span class="font-semibold">Version Checker</span>
+                                    <span class="dlk-status-badge" :class="$store.dlk.data.versionChecker.exists ? 'dlk-badge-ok' : 'dlk-badge-none'" x-text="$store.dlk.data.versionChecker.exists ? 'Checked' : 'No data'"></span>
+                                </div>
+                                <div class="dlk-card-connection">
+                                    <iconify-icon icon="heroicons:arrow-right" width="12" height="12"></iconify-icon>
+                                    <span>
+                                        <template x-if="$store.dlk.data.versionChecker.connectionMethod === 'Embedded in local mod folder; modThreadId links back to topic'">
+                                            <span>Embedded in local mod folder; <span class="dlk-inline-code">modThreadId</span> links back to <span class="dlk-inline-code">topic</span></span>
+                                        </template>
+                                        <span x-show="$store.dlk.data.versionChecker.connectionMethod !== 'Embedded in local mod folder; modThreadId links back to topic'"
+                                            x-text="$store.dlk.data.versionChecker.connectionMethod"></span>
+                                    </span>
+                                </div>
+                                <div class="dlk-card-storage">
+                                    <iconify-icon icon="heroicons:server" width="12" height="12" class="shrink-0 mt-0.5"></iconify-icon>
+                                    <div class="dlk-path" x-text="$store.dlk.data.versionChecker.storagePath"></div>
+                                </div>
+                                <template x-if="$store.dlk.data.versionChecker.exists">
+                                    <div class="dlk-card-data space-y-2">
+                                        <template x-for="vc in $store.dlk.data.versionChecker.data" :key="vc.modId">
+                                            <div class="dlk-vc-block">
+                                                <div class="dlk-kv"><span class="dlk-k">modId</span><span class="dlk-v font-mono" x-text="vc.modId"></span></div>
+                                                <div class="dlk-kv">
+                                                    <span class="dlk-k">local / remote</span>
+                                                    <span class="dlk-v font-mono">
+                                                        <span x-text="vc.localVersion || '?'"></span>
+                                                        <iconify-icon icon="heroicons:arrow-right" width="10" height="10" class="mx-1 inline-block"></iconify-icon>
+                                                        <span x-text="vc.remoteVersion || '?'"></span>
+                                                    </span>
+                                                </div>
+                                                <div class="dlk-kv"><span class="dlk-k">updateAvailable</span><span class="dlk-v" :class="vc.updateAvailable ? 'text-amber-400 font-semibold' : 'text-gray-400'" x-text="vc.updateAvailable"></span></div>
+                                                <div class="dlk-kv" x-show="vc.directDownloadUrl"><span class="dlk-k">directDownloadUrl</span><a :href="vc.directDownloadUrl" target="_blank" rel="noopener" class="dlk-v text-indigo-400 hover:text-indigo-300 truncate text-[10px]" x-text="vc.directDownloadUrl"></a></div>
+                                                <div class="dlk-kv" x-show="vc.error"><span class="dlk-k">error</span><span class="dlk-v text-red-400" x-text="vc.error"></span></div>
+                                                <div class="dlk-kv"><span class="dlk-k">checkedAt</span><span class="dlk-v" x-text="vc.checkedAt"></span></div>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </template>
+                                <div x-show="!$store.dlk.data.versionChecker.exists" class="dlk-card-empty">No version check results cached for matched mods</div>
+                            </div>
+
+                            <!-- 5. Topic-Archive Map -->
+                            <div id="dlk-card-archive-map" class="dlk-card" :class="$store.dlk.data.topicArchiveMap.exists ? 'dlk-card-present' : 'dlk-card-absent'">
+                                <div class="dlk-card-header">
+                                    <iconify-icon icon="heroicons:archive-box" width="16" height="16"></iconify-icon>
+                                    <span class="font-semibold">Topic-Archive Map</span>
+                                    <span class="dlk-status-badge" :class="$store.dlk.data.topicArchiveMap.exists ? 'dlk-badge-ok' : 'dlk-badge-none'" x-text="$store.dlk.data.topicArchiveMap.exists ? ($store.dlk.data.topicArchiveMap.data.length + ' archives') : 'No archives'"></span>
+                                </div>
+                                <div class="dlk-card-connection">
+                                    <iconify-icon icon="heroicons:arrow-right" width="12" height="12"></iconify-icon>
+                                    <span>
+                                        <template x-if="$store.dlk.data.topicArchiveMap.connectionMethod === 'Key is topicId; modIds[] link to local mod folders'">
+                                            <span>Key is <span class="dlk-inline-code">topicId</span>; <span class="dlk-inline-code">modIds[]</span> link to local mod folders</span>
+                                        </template>
+                                        <span x-show="$store.dlk.data.topicArchiveMap.connectionMethod !== 'Key is topicId; modIds[] link to local mod folders'"
+                                            x-text="$store.dlk.data.topicArchiveMap.connectionMethod"></span>
+                                    </span>
+                                </div>
+                                <div class="dlk-card-storage">
+                                    <iconify-icon icon="heroicons:server" width="12" height="12" class="shrink-0 mt-0.5"></iconify-icon>
+                                    <div class="dlk-path" x-text="$store.dlk.data.topicArchiveMap.storagePath"></div>
+                                </div>
+                                <template x-if="$store.dlk.data.topicArchiveMap.exists">
+                                    <div class="dlk-card-data space-y-2">
+                                        <template x-for="ae in $store.dlk.data.topicArchiveMap.data" :key="ae.archiveName">
+                                            <div class="dlk-archive-block">
+                                                <div class="flex items-center gap-2 mb-1">
+                                                    <iconify-icon icon="heroicons:archive-box-arrow-down" width="14" height="14" class="text-blue-400"></iconify-icon>
+                                                    <span class="font-mono text-xs text-white" x-text="ae.archiveName"></span>
+                                                    <span class="dlk-installed-badge dlk-badge-qb">Downloaded via QBMBAMM</span>
+                                                </div>
+                                                <div class="dlk-kv"><span class="dlk-k">downloadUrl</span><a :href="ae.downloadUrl" target="_blank" rel="noopener" class="dlk-v text-indigo-400 hover:text-indigo-300 truncate text-[10px]" x-text="ae.downloadUrl"></a></div>
+                                                <div class="dlk-kv">
+                                                    <span class="dlk-k">modIds</span>
+                                                    <span class="dlk-v">
+                                                        <template x-for="mid in ae.modIds" :key="mid">
+                                                            <span class="dlk-modid-chip" x-text="mid"></span>
+                                                        </template>
+                                                    </span>
+                                                </div>
+                                                <div class="dlk-kv" x-show="ae.installedModNames && ae.installedModNames.length > 0">
+                                                    <span class="dlk-k">installed as</span>
+                                                    <span class="dlk-v" x-text="ae.installedModNames.join(', ')"></span>
+                                                </div>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </template>
+                                <div x-show="!$store.dlk.data.topicArchiveMap.exists" class="dlk-card-empty">No archives downloaded via QBMBAMM for this topic</div>
+                            </div>
+
+                            <!-- 6. Learned Match Cache -->
+                            <div id="dlk-card-match-cache" class="dlk-card" :class="$store.dlk.data.modMatches.exists ? 'dlk-card-present' : 'dlk-card-absent'">
+                                <div class="dlk-card-header">
+                                    <iconify-icon icon="heroicons:puzzle-piece" width="16" height="16"></iconify-icon>
+                                    <span class="font-semibold">Learned Match Cache</span>
+                                    <span class="dlk-status-badge" :class="$store.dlk.data.modMatches.exists ? 'dlk-badge-ok' : 'dlk-badge-none'" x-text="$store.dlk.data.modMatches.exists ? (Object.keys($store.dlk.data.modMatches.data).length + ' saved') : 'None'"></span>
+                                </div>
+                                <div class="dlk-card-connection">
+                                    <iconify-icon icon="heroicons:arrow-right" width="12" height="12"></iconify-icon>
+                                    <span>
+                                        <template x-if="$store.dlk.data.modMatches.connectionMethod === 'Auto-saved when an installed local mod is matched to a forum topic while browsing. Independent of QBMBAMM download history.'">
+                                            <span>Auto-saved when an installed local mod is matched to a forum topic while browsing. Independent of QBMBAMM download history.</span>
+                                        </template>
+                                        <span x-show="$store.dlk.data.modMatches.connectionMethod !== 'Auto-saved when an installed local mod is matched to a forum topic while browsing. Independent of QBMBAMM download history.'"
+                                            x-text="$store.dlk.data.modMatches.connectionMethod"></span>
+                                    </span>
+                                </div>
+                                <div class="dlk-card-storage">
+                                    <iconify-icon icon="heroicons:server" width="12" height="12" class="shrink-0 mt-0.5"></iconify-icon>
+                                    <div class="dlk-path" x-text="$store.dlk.data.modMatches.storagePath"></div>
+                                </div>
+                                <template x-if="$store.dlk.data.modMatches.exists">
+                                    <div class="dlk-card-data">
+                                        <template x-for="modId in Object.keys($store.dlk.data.modMatches.data)" :key="modId">
+                                            <div class="dlk-kv">
+                                                <span class="dlk-k font-mono" x-text="modId"></span>
+                                                <span class="dlk-v font-mono">
+                                                    <iconify-icon icon="heroicons:arrow-right" width="10" height="10" class="inline-block mx-1"></iconify-icon>
+                                                    topic <span x-text="$store.dlk.data.modMatches.data[modId]"></span>
+                                                </span>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </template>
+                                <div x-show="!$store.dlk.data.modMatches.exists" class="dlk-card-empty">No cached match — this mod's local install has not yet been linked to this topic during a browse session</div>
+                            </div>
+
+                            <!-- 7. Assumed Downloads -->
+                            <div id="dlk-card-assumed-downloads" class="dlk-card" :class="$store.dlk.data.assumedDownloads.exists ? 'dlk-card-present' : 'dlk-card-absent'">
+                                <div class="dlk-card-header">
+                                    <iconify-icon icon="heroicons:magnifying-glass" width="16" height="16"></iconify-icon>
+                                    <span class="font-semibold">Assumed Downloads</span>
+                                    <span class="dlk-status-badge" :class="$store.dlk.data.assumedDownloads.exists ? 'dlk-badge-ok' : 'dlk-badge-none'" x-text="$store.dlk.data.assumedDownloads.exists ? (($store.dlk.data.assumedDownloads.data || []).length + ' candidates') : 'None cached'"></span>
+                                </div>
+                                <div class="dlk-card-connection">
+                                    <iconify-icon icon="heroicons:arrow-right" width="12" height="12"></iconify-icon>
+                                    <span>
+                                        <template x-if="$store.dlk.data.assumedDownloads.connectionMethod === 'Resolved from forum post links; key is topicId'">
+                                            <span>Resolved from forum post links; key is <span class="dlk-inline-code">topicId</span></span>
+                                        </template>
+                                        <span x-show="$store.dlk.data.assumedDownloads.connectionMethod !== 'Resolved from forum post links; key is topicId'"
+                                            x-text="$store.dlk.data.assumedDownloads.connectionMethod"></span>
+                                    </span>
+                                </div>
+                                <div class="dlk-card-storage">
+                                    <iconify-icon icon="heroicons:server" width="12" height="12" class="shrink-0 mt-0.5"></iconify-icon>
+                                    <div class="dlk-path" x-text="$store.dlk.data.assumedDownloads.storagePath"></div>
+                                </div>
+                                <template x-if="$store.dlk.data.assumedDownloads.exists">
+                                    <div class="dlk-card-data space-y-2">
+                                        <template x-for="(ad, idx) in ($store.dlk.data.assumedDownloads.data || [])" :key="ad.originalUrl">
+                                            <div class="dlk-assumed-block">
+                                                <div class="flex items-center gap-2 mb-1">
+                                                    <span class="dlk-confidence-badge" :class="'dlk-conf-' + ad.confidence" x-text="ad.confidence"></span>
+                                                    <span class="text-[10px] text-gray-500" x-text="ad.sourceHost"></span>
+                                                    <span class="text-[10px] text-amber-400" x-show="ad.requiresManualStep">manual only</span>
+                                                </div>
+                                                <div class="dlk-kv"><span class="dlk-k">originalUrl</span><a :href="ad.originalUrl" target="_blank" rel="noopener" class="dlk-v text-indigo-400 hover:text-indigo-300 truncate text-[10px]" x-text="ad.originalUrl"></a></div>
+                                                <div class="dlk-kv" x-show="ad.resolvedDirectUrl"><span class="dlk-k">resolvedUrl</span><a :href="ad.resolvedDirectUrl" target="_blank" rel="noopener" class="dlk-v text-emerald-400 hover:text-emerald-300 truncate text-[10px]" x-text="ad.resolvedDirectUrl"></a></div>
+                                                <div class="dlk-kv" x-show="ad.fileName"><span class="dlk-k">fileName</span><span class="dlk-v font-mono" x-text="ad.fileName"></span></div>
+                                                <div class="dlk-kv" x-show="ad.linkText"><span class="dlk-k">linkText</span><span class="dlk-v" x-text="ad.linkText"></span></div>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </template>
+                                <div x-show="!$store.dlk.data.assumedDownloads.exists" class="dlk-card-empty">No assumed download candidates cached for this topic</div>
+                                <div
+                                    x-show="!$store.dlk.data.assumedDownloads.exists
+                                        && ((($store.dlk.data.versionChecker.data || []).some(vc => !!vc.directDownloadUrl))
+                                            || (!!$store.dlk.data.modRepo.data?.urls
+                                                && Object.keys($store.dlk.data.modRepo.data.urls).some(key =>
+                                                    key.toLowerCase().includes('direct') || key.toLowerCase().includes('download'))))"
+                                    class="mt-2 rounded border border-emerald-500/40 bg-emerald-900/20 px-2.5 py-2 text-[11px] text-emerald-300">
+                                    Assumed download links are not needed because a direct download link is already available from Version Checker or ModRepo.
+                                </div>
+                            </div>
+
+                        </div><!-- end cards grid -->
+                    </div>
+                </template>
+            </div><!-- end body -->
+        </div>
+    </div>
+</div>

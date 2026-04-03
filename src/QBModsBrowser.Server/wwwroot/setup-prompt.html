@@ -1,0 +1,90 @@
+<!-- First-run setup prompt: shown when no mods path is configured, cannot be skipped. -->
+<div x-show="showSetupPrompt" x-cloak
+     class="fixed inset-0 z-[60] flex items-center justify-center backdrop-blur-sm bg-black/60"
+     @keydown.escape.window="">
+    <div class="relative w-full max-w-2xl max-h-[90vh] mx-4 rounded-xl border border-gray-600 bg-surface shadow-2xl flex flex-col overflow-hidden"
+         x-show="showSetupPrompt"
+         x-transition:enter="transition ease-out duration-200"
+         x-transition:enter-start="opacity-0 scale-95"
+         x-transition:enter-end="opacity-100 scale-100"
+         x-transition:leave="transition ease-in duration-150"
+         x-transition:leave-start="opacity-100 scale-100"
+         x-transition:leave-end="opacity-0 scale-95">
+
+        <!-- Header -->
+        <div class="flex items-center gap-3 border-b border-gray-700 px-5 py-4">
+            <iconify-icon icon="heroicons:folder-open" width="22" height="22" class="text-indigo-400 shrink-0"></iconify-icon>
+            <h2 class="text-base font-semibold text-white">Welcome to QBMBAMM</h2>
+        </div>
+
+        <!-- Body (scrollable when viewport is short — overview block can be tall). -->
+        <div class="px-5 py-5 space-y-4 overflow-y-auto min-h-0">
+            <p class="text-sm text-gray-300">
+                Enter the full path to your Starsector <code class="text-indigo-300 bg-white/5 px-1 rounded">mods</code> folder so the browser can read your installed mods.
+            </p>
+
+            <!-- First-run overview: keyboard shortcuts and main app features (matches list-page shortcut tooltip styling). -->
+            <div class="rounded-lg border border-gray-700/80 bg-white/[0.03] p-4 space-y-3">
+                <p class="text-[11px] font-semibold uppercase tracking-wider text-gray-400">Keyboard shortcuts</p>
+                <p class="text-[10px] text-gray-500 -mt-2">When a text field is not focused.</p>
+                <div class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-[11px] text-gray-300">
+                    <div class="flex flex-wrap gap-1 items-center">
+                        <kbd class="rounded bg-gray-700 px-1.5 py-0.5 font-mono text-[10px] text-gray-200">A</kbd>
+                        <kbd class="rounded bg-gray-700 px-1.5 py-0.5 font-mono text-[10px] text-gray-200">D</kbd>
+                    </div>
+                    <span>Mod list: previous / next page. Mod page: previous / next mod.</span>
+                    <div class="flex flex-wrap gap-1 items-center">
+                        <kbd class="rounded bg-gray-700 px-1.5 py-0.5 font-mono text-[10px] text-gray-200">Q</kbd>
+                        <kbd class="rounded bg-gray-700 px-1.5 py-0.5 font-mono text-[10px] text-gray-200">E</kbd>
+                    </div>
+                    <span>Mod list: previous / next category filter.</span>
+                    <kbd class="rounded bg-gray-700 px-1.5 py-0.5 font-mono text-[10px] text-gray-200 w-fit h-fit self-start">T</kbd>
+                    <span>Mod list: open this popup.</span>
+                    <kbd class="rounded bg-gray-700 px-1.5 py-0.5 font-mono text-[10px] text-gray-200 w-fit h-fit self-start">S</kbd>
+                    <span>Mod page: back to the list.</span>
+                </div>
+                <p class="text-[11px] font-semibold uppercase tracking-wider text-gray-400 pt-1 border-t border-gray-700/60">What else is in the app</p>
+                <!-- Two-column grid so every description lines up after the widest label. -->
+                <div class="grid grid-cols-[auto_minmax(0,1fr)] gap-x-2 gap-y-1.5 items-start text-[11px] text-gray-300">
+                    <span class="text-gray-200 shrink-0">Browse, filter, sort</span>
+                    <span class="min-w-0">Search, minimum game version, category, install status, age window, sorting.</span>
+                    <span class="text-gray-200 shrink-0">Automatic download/install</span>
+                    <span class="min-w-0">Automatically install most mods straight from the forum.</span>
+                    <span class="text-gray-200 shrink-0">Mod managing</span>
+                    <span class="min-w-0">Enable, disable, or remove mods in your folder.</span>
+                    <span class="text-gray-200 shrink-0">Automatic extract/install</span>
+                    <span class="min-w-0">In installs section, press "Extract" to extract and install archives in your mods folder.</span>
+                    <span class="text-gray-200 shrink-0">Mod profiles</span>
+                    <span class="min-w-0">Header bar profiles to enable/disable groups of local mods.</span>
+                    <span class="text-gray-200 shrink-0">Update checking</span>
+                    <span class="min-w-0">Checks for updates through the forum, ModRepo, and VersionChecker data.</span>
+                    <span class="text-gray-200 shrink-0">Favorites</span>
+                    <span class="min-w-0">Star mods on cards.</span>
+                    <span class="text-gray-200 shrink-0">Dependencies</span>
+                    <span class="min-w-0">Displays missing dependencies.</span>
+                    <span class="text-gray-200 shrink-0">Control Panel</span>
+                    <span class="min-w-0">Scrape for new forum data, adjust settings.</span>
+                </div>
+            </div>
+
+            <div class="space-y-2">
+                <label class="text-[10px] text-gray-400 block">Mods Folder Path</label>
+                <input type="text" x-model="managerConfig.modsPath"
+                       @keydown.enter="saveSetupModsPath()"
+                       @input="setupPathError = ''"
+                       class="w-full bg-surface-alt border rounded px-3 py-2 text-sm text-gray-200 focus:outline-none transition"
+                       :class="setupPathError ? 'border-red-500 focus:border-red-400' : 'border-gray-600 focus:border-indigo-500'"
+                       placeholder="C:\Program Files (x86)\Fractal Softworks\Starsector\mods" />
+                <p x-show="setupPathError" x-text="setupPathError" class="text-[11px] text-red-400"></p>
+            </div>
+            <button @click="saveSetupModsPath()"
+                    :disabled="!managerConfig.modsPath || !managerConfig.modsPath.trim()"
+                    class="w-full px-4 py-2 bg-accent hover:bg-accent-hover disabled:opacity-40 disabled:cursor-not-allowed text-white rounded text-sm font-medium transition">
+                Save &amp; Continue
+            </button>
+            <p class="text-[11px] text-gray-500 text-center">
+                This can be changed later in the <span class="text-gray-400">Control Panel</span>.
+            </p>
+        </div>
+    </div>
+</div>

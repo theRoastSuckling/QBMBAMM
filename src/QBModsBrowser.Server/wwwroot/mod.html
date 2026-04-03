@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mod Details - QB Mod Browser and Mod Manager</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js"></script>
+    <script defer src="https://code.iconify.design/iconify-icon/1.0.8/iconify-icon.min.js"></script>
+    <script src="/tailwind-config.js"></script>
+    <link rel="icon" type="image/x-icon" href="/QBSSMB4.ico">
+    <link rel="stylesheet" href="/shared.css">
+    <link rel="stylesheet" href="/mod-detail.css">
+    <link rel="stylesheet" href="/mod-linkage-report.css">
+</head>
+<body class="bg-surface text-gray-300 min-h-screen" x-data="modDetail()" @keydown.window="handleDetailKeydown($event)">
+
+    <!-- Header -->
+    <div class="sticky top-0 z-30 bg-surface">
+        <div class="max-w-screen-2xl mx-auto px-4">
+            <header class="header-bar px-4 sm:px-5 pt-3 pb-3 mod-detail-header min-h-[143px]">
+                <!-- Loading -->
+                <div class="flex items-center gap-4" x-show="loading" x-cloak>
+                    <a href="/" class="flex min-h-[4rem] shrink-0 items-center gap-1.5 rounded-md px-2 py-1 text-sm text-indigo-100/90 transition hover:bg-white/10 hover:text-white">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                        Back
+                    </a>
+                    <span class="text-sm text-indigo-100/80">Loading…</span>
+                </div>
+                <div class="w-full space-y-3" x-show="mod && !loading" x-cloak>
+                    <div class="flex w-full min-w-0 items-center gap-3 sm:gap-4">
+                        <!-- Uses history.back() so index.html is restored from bfcache with no re-fetch; falls back to hard navigation when no history entry exists (e.g. direct deep link). -->
+                        <a href="/" @click.prevent="history.length > 1 ? history.back() : (window.location.href = '/')" class="flex min-h-[4rem] shrink-0 items-center gap-1.5 rounded-md px-2 py-1 text-sm text-indigo-100/90 transition hover:bg-white/10 hover:text-white">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                            Back
+                        </a>
+                        <div class="min-w-0 flex-1">
+                            <h1 class="min-w-0 text-xl font-bold leading-snug text-white sm:text-2xl" x-text="displayModName()"></h1>
+                            <div class="mt-0.5 text-xs sm:text-sm text-indigo-100/75">
+                                <span x-show="mod?.postDate">
+                                    Created <span x-text="formatCreatedDate(mod?.postDate)"></span>
+                                </span>
+                                <span x-show="mod?.postDate && mod?.lastEditDate" class="detail-meta-sep" aria-hidden="true">·</span>
+                                <span x-show="mod?.lastEditDate">
+                                    Last edit <span x-text="formatLastEditDate(mod?.lastEditDate)"></span>
+                                </span>
+                            </div>
+                        </div>
+                        <button type="button" @click="$store.dlk.openForMod(mod?.topicId, displayModName())"
+                            class="flex shrink-0 items-center gap-1.5 rounded-md bg-white/10 px-2 py-1.5 text-xs font-medium text-white transition hover:bg-white/20"
+                            title="Linkage Report: see how all data sources connect for this mod">
+                            <iconify-icon icon="heroicons:information-circle" width="16" height="16"></iconify-icon>
+                        </button>
+                        <a :href="mod?.topicId ? ('https://fractalsoftworks.com/forum/index.php?topic=' + mod.topicId + '.0') : '#'"
+                            :target="openLinksInNewTab ? '_blank' : '_self'"
+                            rel="noopener"
+                            class="flex shrink-0 items-center gap-1.5 rounded-md bg-white/10 px-2.5 py-1.5 text-xs font-medium text-white transition hover:bg-white/20 sm:px-3">
+                            <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                            <span class="hidden sm:inline">Original Thread</span>
+                            <span class="sm:hidden">Forum</span>
+                        </a>
+                    </div>
+                    <div class="flex w-full min-w-0 flex-wrap items-center gap-x-2 gap-y-2 border-t border-white/15 pt-3 text-xs text-indigo-100/90 sm:gap-x-3 sm:text-sm">
+                        <span x-show="mod?.gameVersion"
+                            class="detail-version-pill shrink-0 rounded font-mono"
+                            x-text="mod?.gameVersion || ''"></span>
+                        <button type="button"
+                            @click.stop="mod?.topicId && toggleFavorite(mod.topicId)"
+                            class="flex h-7 min-w-[1.75rem] shrink-0 items-center justify-center rounded px-0.5 hover:bg-white/15 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+                            :aria-pressed="isFavorite(mod?.topicId)"
+                            title="Favorite">
+                            <iconify-icon :icon="isFavorite(mod?.topicId) ? 'mdi:star' : 'mdi:star-outline'"
+                                class="favorite-star-icon"
+                                :class="isFavorite(mod?.topicId) ? 'text-amber-300' : 'text-indigo-100/70'"></iconify-icon>
+                        </button>
+                        <div class="detail-category-chip inline-flex max-w-[min(100%,12rem)] shrink items-center gap-1 rounded-md text-xs sm:max-w-[16rem]"
+                            :class="categoryIcon(mod?.category) === 'uncategorized' ? 'opacity-80' : ''">
+                            <iconify-icon :icon="categoryIconName(mod?.category)" class="category-chip-icon"></iconify-icon>
+                            <span class="truncate" x-text="mod?.category || 'uncategorized'"></span>
+                        </div>
+                        <span class="detail-meta-sep" aria-hidden="true">·</span>
+                        <span class="flex min-w-0 max-w-full flex-wrap items-center gap-x-1.5 gap-y-1 font-medium">
+                            <a x-show="mod?.author"
+                                :href="'/?search=' + encodeURIComponent(mod?.author || '')"
+                                class="inline-flex max-w-full min-h-[1.75rem] min-w-0 shrink items-center rounded-md border border-white/25 bg-white/10 px-2.5 py-1 text-sm text-white shadow-sm transition hover:border-white/35 hover:bg-white/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+                                title="Search mods by this author">
+                                <span class="truncate" x-text="mod?.author || ''"></span>
+                            </a>
+                            <span x-show="mod?.authorTitle" class="min-w-0 font-normal text-indigo-100/80" x-text="' · ' + (mod?.authorTitle || '')"></span>
+                        </span>
+                        <!-- Mod Manager Actions -->
+                        <div class="flex items-center gap-2 ml-auto shrink-0 flex-wrap justify-end">
+                                <template x-if="manager">
+                                    <div class="flex items-center gap-2 flex-wrap">
+                                        <!-- Direct download: progress while active, else button -->
+                                        <template x-if="manager.hasDirectDownload && !manager.isInstalled">
+                                            <div class="inline-flex items-center">
+                                                <template x-if="activeDirectDownload()">
+                                                    <div class="inline-flex items-center gap-2 rounded-md px-2.5 py-1.5 text-xs font-medium border"
+                                                        :class="activeDirectDownload().status === 'Installing' ? 'bg-emerald-500/20 text-emerald-300 border-emerald-400/40' : manager.updateAvailable ? 'bg-amber-500/20 text-amber-300 border border-amber-400/40' : 'bg-blue-500/20 text-blue-300 border border-blue-400/40'">
+                                                        <template x-if="activeDirectDownload().status === 'Downloading' && activeDirectDownload().totalBytes > 0">
+                                                            <svg class="w-4 h-4 shrink-0" viewBox="0 0 20 20">
+                                                                <circle cx="10" cy="10" r="8" fill="none" stroke="currentColor" stroke-width="2.5" opacity="0.25"/>
+                                                                <circle cx="10" cy="10" r="8" fill="none" stroke="currentColor" stroke-width="2.5"
+                                                                    stroke-dasharray="50.27"
+                                                                    :stroke-dashoffset="50.27 * (1 - (activeDirectDownload().progressPercent / 100))"
+                                                                    transform="rotate(-90 10 10)" stroke-linecap="round" class="transition-all duration-300"/>
+                                                            </svg>
+                                                        </template>
+                                                        <template x-if="activeDirectDownload().status === 'Downloading' && activeDirectDownload().totalBytes <= 0">
+                                                            <svg class="w-4 h-4 shrink-0 animate-spin" viewBox="0 0 20 20">
+                                                                <circle cx="10" cy="10" r="8" fill="none" stroke="currentColor" stroke-width="2.5" opacity="0.25"/>
+                                                                <circle cx="10" cy="10" r="8" fill="none" stroke="currentColor" stroke-width="2.5"
+                                                                    stroke-dasharray="50.27" stroke-dashoffset="37.7"
+                                                                    transform="rotate(-90 10 10)" stroke-linecap="round"/>
+                                                            </svg>
+                                                        </template>
+                                                        <template x-if="activeDirectDownload().status === 'Installing'">
+                                                            <iconify-icon icon="heroicons:cog-6-tooth" class="animate-spin" width="14" height="14"></iconify-icon>
+                                                        </template>
+                                                        <template x-if="activeDirectDownload().status === 'Queued'">
+                                                            <iconify-icon icon="heroicons:clock" width="14" height="14"></iconify-icon>
+                                                        </template>
+                                                        <template x-if="activeDirectDownload().status === 'RetrievingInfo'">
+                                                            <iconify-icon icon="heroicons:magnifying-glass" class="animate-pulse" width="14" height="14"></iconify-icon>
+                                                        </template>
+                                                        <span x-text="activeDirectDownload().status === 'Downloading' ? (activeDirectDownload().totalBytes > 0 ? activeDirectDownload().progressPercent + '%' : formatBytes(activeDirectDownload().downloadedBytes)) : activeDirectDownload().status === 'Installing' ? 'Extracting…' : activeDirectDownload().status === 'Queued' ? 'Queued' : 'Checking…'"></span>
+                                                    </div>
+                                                </template>
+                                                <template x-if="!activeDirectDownload()">
+                                                    <button @click="downloadMod()"
+                                                        class="inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium transition"
+                                                        :class="manager.updateAvailable ? 'bg-amber-500/20 text-amber-300 border border-amber-400/40 hover:bg-amber-500/30' : 'bg-blue-500/20 text-blue-300 border border-blue-400/40 hover:bg-blue-500/30'">
+                                                        <iconify-icon :icon="manager.updateAvailable ? 'heroicons:arrow-up-circle' : 'heroicons:arrow-down-tray'" width="14" height="14"></iconify-icon>
+                                                        <span x-text="manager.updateAvailable ? 'Update' : 'Download'"></span>
+                                                    </button>
+                                                </template>
+                                            </div>
+                                        </template>
+                                        <!-- Primary installed mod: merged toggle + delete; also shown when candidates exist but don't cover this mod -->
+                                        <template x-if="manager.isInstalled && (assumedNonManualCandidates().length === 0 || !isPrimaryModCoveredByCandidate())">
+                                            <div class="inline-flex items-center gap-1 rounded-md border border-white/15 bg-white/5 px-1.5 py-1" :title="manager.localModName || manager.localModId || 'Primary mod'">
+                                                <span class="text-xs text-gray-200 max-w-[8rem] truncate" x-text="manager.localModName || manager.localModId || 'Installed mod'"></span>
+                                                <template x-if="manager.updateAvailable">
+                                                    <div>
+                                                        <template x-if="activeDirectDownload()">
+                                                            <div class="inline-flex items-center gap-2 rounded-md px-2 py-1 text-xs font-medium border bg-amber-500/20 text-amber-300 border-amber-400/40">
+                                                                <template x-if="activeDirectDownload().status === 'Downloading' && activeDirectDownload().totalBytes > 0">
+                                                                    <svg class="w-4 h-4 shrink-0" viewBox="0 0 20 20">
+                                                                        <circle cx="10" cy="10" r="8" fill="none" stroke="currentColor" stroke-width="2.5" opacity="0.25"/>
+                                                                        <circle cx="10" cy="10" r="8" fill="none" stroke="currentColor" stroke-width="2.5"
+                                                                            stroke-dasharray="50.27"
+                                                                            :stroke-dashoffset="50.27 * (1 - (activeDirectDownload().progressPercent / 100))"
+                                                                            transform="rotate(-90 10 10)" stroke-linecap="round" class="transition-all duration-300"/>
+                                                                    </svg>
+                                                                </template>
+                                                                <template x-if="activeDirectDownload().status === 'Downloading' && activeDirectDownload().totalBytes <= 0">
+                                                                    <svg class="w-4 h-4 shrink-0 animate-spin" viewBox="0 0 20 20">
+                                                                        <circle cx="10" cy="10" r="8" fill="none" stroke="currentColor" stroke-width="2.5" opacity="0.25"/>
+                                                                        <circle cx="10" cy="10" r="8" fill="none" stroke="currentColor" stroke-width="2.5"
+                                                                            stroke-dasharray="50.27" stroke-dashoffset="37.7"
+                                                                            transform="rotate(-90 10 10)" stroke-linecap="round"/>
+                                                                    </svg>
+                                                                </template>
+                                                                <template x-if="activeDirectDownload().status === 'Installing'">
+                                                                    <iconify-icon icon="heroicons:cog-6-tooth" class="animate-spin" width="14" height="14"></iconify-icon>
+                                                                </template>
+                                                                <template x-if="activeDirectDownload().status === 'Queued'">
+                                                                    <iconify-icon icon="heroicons:clock" width="14" height="14"></iconify-icon>
+                                                                </template>
+                                                                <template x-if="activeDirectDownload().status === 'RetrievingInfo'">
+                                                                    <iconify-icon icon="heroicons:magnifying-glass" class="animate-pulse" width="14" height="14"></iconify-icon>
+                                                                </template>
+                                                                <span x-text="activeDirectDownload().status === 'Downloading' ? (activeDirectDownload().totalBytes > 0 ? activeDirectDownload().progressPercent + '%' : formatBytes(activeDirectDownload().downloadedBytes)) : activeDirectDownload().status === 'Installing' ? 'Extracting…' : activeDirectDownload().status === 'Queued' ? 'Queued' : 'Checking…'"></span>
+                                                            </div>
+                                                        </template>
+                                                        <template x-if="!activeDirectDownload()">
+                                                            <button @click="downloadMod()"
+                                                                :disabled="!(manager.updateDownloadUrl || manager.directDownloadUrl)"
+                                                                :title="(manager.updateDownloadUrl || manager.directDownloadUrl) ? 'Update mod' : 'Update available - manual download required'"
+                                                                class="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium transition border"
+                                                                :class="(manager.updateDownloadUrl || manager.directDownloadUrl) ? 'bg-amber-500/20 text-amber-300 border-amber-400/40 hover:bg-amber-500/30' : 'bg-gray-500/20 text-gray-400 border-gray-500/40 cursor-not-allowed opacity-80'">
+                                                                <iconify-icon icon="heroicons:arrow-up-circle" width="14" height="14"></iconify-icon>
+                                                                <span>Update</span>
+                                                            </button>
+                                                        </template>
+                                                    </div>
+                                                </template>
+                                                <button @click="toggleEnabled()"
+                                                    class="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium border transition cursor-pointer"
+                                                    :class="manager.isEnabled ? 'bg-emerald-500/20 text-emerald-300 border-emerald-400/40 hover:bg-emerald-500/30' : 'bg-gray-500/20 text-gray-400 border-gray-500/40 hover:bg-gray-500/30'">
+                                                    <iconify-icon :icon="manager.isEnabled ? 'heroicons:check-circle' : 'heroicons:minus-circle'" width="14" height="14"></iconify-icon>
+                                                    <span x-text="manager.isEnabled ? 'Enabled' : 'Disabled'"></span>
+                                                </button>
+                                                <button @click="deleteMod()"
+                                                    class="inline-flex items-center rounded-md border border-red-500/30 bg-red-500/10 p-1 text-red-300 transition hover:bg-red-500/20"
+                                                    :title="'Delete ' + (manager.localModId || 'mod') + ' from disk'">
+                                                    <iconify-icon icon="heroicons:trash" width="16" height="16"></iconify-icon>
+                                                </button>
+                                            </div>
+                                        </template>
+                                        <!-- Additional installed mods not covered by any candidate archive slot -->
+                                        <template x-for="extra in getAdditionalModsNotCoveredByCandidates()" :key="extra.modId">
+                                            <div class="inline-flex items-center gap-1 rounded-md border border-white/15 bg-white/5 px-1.5 py-1 ml-1" :title="extra.name || extra.modId">
+                                                <span class="text-xs text-gray-200 max-w-[8rem] truncate" x-text="extra.name || extra.modId"></span>
+                                                <button @click="toggleExtraEnabled(extra)"
+                                                    class="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium border transition cursor-pointer"
+                                                    :class="extra.isEnabled ? 'bg-emerald-500/20 text-emerald-300 border-emerald-400/40 hover:bg-emerald-500/30' : 'bg-gray-500/20 text-gray-400 border-gray-500/40 hover:bg-gray-500/30'"
+                                                    :title="(extra.name || extra.modId) + ': click to ' + (extra.isEnabled ? 'disable' : 'enable')">
+                                                    <iconify-icon :icon="extra.isEnabled ? 'heroicons:check-circle' : 'heroicons:minus-circle'" width="14" height="14"></iconify-icon>
+                                                    <span x-text="extra.isEnabled ? 'Enabled' : 'Disabled'"></span>
+                                                </button>
+                                                <button @click="deleteExtraMod(extra)"
+                                                    class="inline-flex items-center rounded-md border border-red-500/30 bg-red-500/10 p-1 text-red-300 transition hover:bg-red-500/20"
+                                                    :title="'Delete ' + (extra.name || extra.modId)">
+                                                    <iconify-icon icon="heroicons:trash" width="16" height="16"></iconify-icon>
+                                                </button>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </template>
+                                <!-- Assumed download buttons / transformed installed slots -->
+                                <div class="flex items-center gap-1.5 flex-wrap" x-show="assumedNonManualCandidates().length > 0 || assumedManualCandidates().length > 0">
+                                    <template x-for="(ad, adIdx) in assumedNonManualCandidates()" :key="'topbar-' + ad.originalUrl">
+                                        <div class="inline-flex items-center gap-1">
+                                            <template x-if="candidateInstalledMods(ad).length > 0">
+                                                <div class="inline-flex items-center gap-1">
+                                                    <template x-for="m in candidateInstalledMods(ad)" :key="'cand-installed-' + ad.originalUrl + '-' + m.modId">
+                                                        <div class="inline-flex items-center gap-1 rounded-md border border-white/15 bg-white/5 px-1.5 py-1" :title="m.name || m.modId">
+                                                            <span class="text-xs text-gray-200 max-w-[8rem] truncate" x-text="m.name || m.modId"></span>
+                                                            <button @click="toggleCandidateEnabled(m)"
+                                                                class="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium border transition cursor-pointer"
+                                                                :class="m.isEnabled ? 'bg-emerald-500/20 text-emerald-300 border-emerald-400/40 hover:bg-emerald-500/30' : 'bg-gray-500/20 text-gray-400 border-gray-500/40 hover:bg-gray-500/30'">
+                                                                <iconify-icon :icon="m.isEnabled ? 'heroicons:check-circle' : 'heroicons:minus-circle'" width="14" height="14"></iconify-icon>
+                                                                <span x-text="m.isEnabled ? 'Enabled' : 'Disabled'"></span>
+                                                            </button>
+                                                            <button @click="deleteCandidate(m)"
+                                                                class="inline-flex items-center rounded-md border border-red-500/30 bg-red-500/10 p-1 text-red-300 transition hover:bg-red-500/20"
+                                                                :title="'Delete ' + (m.name || m.modId)">
+                                                                <iconify-icon icon="heroicons:trash" width="16" height="16"></iconify-icon>
+                                                            </button>
+                                                        </div>
+                                                    </template>
+                                                </div>
+                                            </template>
+                                            <template x-if="candidateInstalledMods(ad).length === 0">
+                                                <div>
+                                                    <template x-if="activeDownloadForCandidate(ad)">
+                                                        <div class="inline-flex items-center gap-2 rounded-md px-2.5 py-1.5 text-xs font-medium border"
+                                                            :class="activeDownloadForCandidate(ad).status === 'Installing' ? 'bg-emerald-500/20 text-emerald-300 border-emerald-400/40' : 'bg-blue-500/20 text-blue-300 border-blue-400/40'">
+                                                            <template x-if="activeDownloadForCandidate(ad).status === 'Downloading' && activeDownloadForCandidate(ad).totalBytes > 0">
+                                                                <svg class="w-4 h-4 shrink-0" viewBox="0 0 20 20">
+                                                                    <circle cx="10" cy="10" r="8" fill="none" stroke="currentColor" stroke-width="2.5" opacity="0.25"/>
+                                                                    <circle cx="10" cy="10" r="8" fill="none" stroke="currentColor" stroke-width="2.5"
+                                                                        stroke-dasharray="50.27"
+                                                                        :stroke-dashoffset="50.27 * (1 - (activeDownloadForCandidate(ad).progressPercent / 100))"
+                                                                        transform="rotate(-90 10 10)" stroke-linecap="round" class="transition-all duration-300"/>
+                                                                </svg>
+                                                            </template>
+                                                            <template x-if="activeDownloadForCandidate(ad).status === 'Downloading' && activeDownloadForCandidate(ad).totalBytes <= 0">
+                                                                <svg class="w-4 h-4 shrink-0 animate-spin" viewBox="0 0 20 20">
+                                                                    <circle cx="10" cy="10" r="8" fill="none" stroke="currentColor" stroke-width="2.5" opacity="0.25"/>
+                                                                    <circle cx="10" cy="10" r="8" fill="none" stroke="currentColor" stroke-width="2.5"
+                                                                        stroke-dasharray="50.27" stroke-dashoffset="37.7"
+                                                                        transform="rotate(-90 10 10)" stroke-linecap="round"/>
+                                                                </svg>
+                                                            </template>
+                                                            <template x-if="activeDownloadForCandidate(ad).status === 'Installing'">
+                                                                <iconify-icon icon="heroicons:cog-6-tooth" class="animate-spin" width="14" height="14"></iconify-icon>
+                                                            </template>
+                                                            <template x-if="activeDownloadForCandidate(ad).status === 'Queued'">
+                                                                <iconify-icon icon="heroicons:clock" width="14" height="14"></iconify-icon>
+                                                            </template>
+                                                            <template x-if="activeDownloadForCandidate(ad).status === 'RetrievingInfo'">
+                                                                <iconify-icon icon="heroicons:magnifying-glass" class="animate-pulse" width="14" height="14"></iconify-icon>
+                                                            </template>
+                                                            <span x-text="activeDownloadForCandidate(ad).status === 'Downloading' ? (activeDownloadForCandidate(ad).totalBytes > 0 ? activeDownloadForCandidate(ad).progressPercent + '%' : formatBytes(activeDownloadForCandidate(ad).downloadedBytes)) : activeDownloadForCandidate(ad).status === 'Installing' ? 'Extracting…' : activeDownloadForCandidate(ad).status === 'Queued' ? 'Queued' : 'Checking…'"></span>
+                                                        </div>
+                                                    </template>
+                                                    <template x-if="!activeDownloadForCandidate(ad)">
+                                                        <button @click="downloadAssumed(ad)"
+                                                            class="inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium transition"
+                                                            :class="assumedDifficultyClass(ad)"
+                                                            :disabled="isResolvingCandidate(ad.originalUrl)">
+                                                            <iconify-icon icon="heroicons:arrow-down-tray" width="14" height="14"
+                                                                :class="isResolvingCandidate(ad.originalUrl) ? 'animate-spin' : ''"></iconify-icon>
+                                                            <span x-text="ad.fileName || ad.sourceHost || ('Download ' + (adIdx+1))"></span>
+                                                        </button>
+                                                    </template>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </template>
+                                    <template x-for="ad in assumedManualCandidates()" :key="'topbar-manual-' + ad.originalUrl">
+                                        <a :href="ad.originalUrl" target="_blank" rel="noopener"
+                                            class="inline-flex items-center gap-1 rounded-md bg-gray-500/20 text-gray-300 border border-gray-500/40 hover:bg-gray-500/30 px-2.5 py-1.5 text-xs font-medium transition">
+                                            <iconify-icon icon="heroicons:arrow-top-right-on-square" width="14" height="14"></iconify-icon>
+                                            <span x-text="ad.sourceHost || 'Manual download'"></span>
+                                        </a>
+                                    </template>
+                                </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Error / no id -->
+                <div class="flex items-center gap-4" x-show="!loading && !mod && error" x-cloak>
+                    <a href="/" class="flex min-h-[4rem] items-center gap-1.5 rounded-md px-2 py-1 text-sm text-indigo-100/90 transition hover:bg-white/10 hover:text-white">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                        Back
+                    </a>
+                    <span class="text-sm text-red-200/90">Could not load mod</span>
+                </div>
+            </header>
+        </div>
+    </div>
+
+    <!-- Error -->
+    <div class="max-w-screen-2xl mx-auto px-6 py-16 text-center" x-show="error" x-cloak>
+        <p class="text-red-400 text-lg mb-2">Failed to load mod</p>
+        <p class="text-sm text-gray-500" x-text="error"></p>
+        <a href="/" class="text-accent hover:underline text-sm mt-4 inline-block">Back to list</a>
+    </div>
+
+    <!-- Content -->
+    <div class="max-w-screen-2xl mx-auto px-6 py-6" x-show="mod && !loading" x-cloak>
+        <div class="flex flex-col gap-6 md:flex-row">
+
+            <!-- Main content -->
+            <div class="flex-1 min-w-0">
+                <div class="rounded-lg border border-gray-700 bg-surface-alt">
+                    <div class="mod-content text-gray-300 p-6"
+                        x-html="mod?.contentHtml" x-ref="postContent"></div>
+                </div>
+
+                <!-- Original forum link (bottom) -->
+                <div class="mt-4 text-center">
+                    <a :href="'https://fractalsoftworks.com/forum/index.php?topic=' + mod?.topicId + '.0'"
+                        :target="openLinksInNewTab ? '_blank' : '_self'"
+                        rel="noopener"
+                        class="inline-flex items-center gap-2 text-sm text-gray-400 hover:text-accent transition px-4 py-2 rounded bg-surface-alt border border-gray-700 hover:border-accent">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                        View original forum thread
+                    </a>
+                </div>
+            </div>
+
+            <!-- Sidebar: spoiler controls + links -->
+            <div class="flex shrink-0 flex-col gap-4 md:w-72"
+                x-show="hasSpoilers || (mod?.links?.length > 0)">
+                <div class="flex flex-col gap-4 md:sticky md:top-40">
+                    <div x-show="hasSpoilers" x-cloak
+                        class="rounded-lg border border-gray-700 bg-surface-alt p-4">
+                        <h3 class="mb-3 text-sm font-semibold text-white">Collapsible sections</h3>
+                        <div class="flex flex-col gap-2">
+                            <button type="button" @click="expandAllSpoilers()"
+                                class="rounded border border-gray-600 bg-surface-raised px-3 py-1.5 text-xs text-gray-200 transition hover:border-accent hover:text-white">
+                                Expand all
+                            </button>
+                            <button type="button" @click="collapseAllSpoilers()"
+                                class="rounded border border-gray-600 bg-surface-raised px-3 py-1.5 text-xs text-gray-200 transition hover:border-accent hover:text-white">
+                                Collapse all
+                            </button>
+                        </div>
+                    </div>
+                    <div x-show="mod?.links?.length > 0" class="rounded-lg border border-gray-700 bg-surface-alt p-4">
+                        <h3 class="mb-3 text-sm font-semibold text-white">Links</h3>
+                        <div class="space-y-2">
+                            <template x-for="link in (mod?.links || [])" :key="link.url">
+                                <a :href="link.url"
+                                    :target="openLinksInNewTab ? '_blank' : '_self'"
+                                    rel="noopener"
+                                    class="group flex items-center gap-2 text-sm text-accent transition hover:text-accent-hover">
+                                    <svg x-show="link.isExternal" class="h-3.5 w-3.5 shrink-0 text-gray-500 group-hover:text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                                    </svg>
+                                    <span class="truncate" x-text="link.text || link.url"></span>
+                                </a>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Popup portal: mod-data-linkage.js fetches mod-data-linkage-popup.html and mounts it here -->
+    <div id="dlk-portal"></div>
+
+    <script src="/favorites.js"></script>
+    <script src="/version-compare.js"></script>
+    <script src="/page-load-scan.js"></script>
+    <script src="/mod-linkage-report.js"></script>
+    <script src="/mod-detail.js"></script>
+</body>
+</html>

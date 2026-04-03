@@ -1,0 +1,25 @@
+---
+description: Require concise class and method comments
+alwaysApply: true
+---
+
+# Code Comment Requirements
+
+- Add a short `//` comment directly above every class you create or modify.
+- Add a short `//` comment directly above every method/function you create or modify.
+- In frontend scripts, also add `//` comments above object-literal methods (for example Alpine component methods in `wwwroot` pages).
+- Comments should explain purpose and usage context (`what` and `when/why`) in plain language.
+- Prefer concise comments (usually one line) and avoid boilerplate wording.
+- Do not use XML-doc comments for this rule unless explicitly requested by the user.
+- When touching existing code, backfill missing class/method `//` comments in the edited region.
+
+## Examples
+
+```csharp
+// Resolves repo metadata and keeps a short-lived in-memory cache.
+public class ModRepoService
+{
+    // Returns cached data, refreshing from remote source when stale.
+    public async Task<ModRepoData> GetDataAsync(bool forceRefresh = false) { ... }
+}
+```

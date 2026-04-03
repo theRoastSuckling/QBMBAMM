@@ -1,0 +1,11 @@
+---
+description: Agent self-service workflow
+alwaysApply: true
+---
+
+# Agent Workflow
+
+- Work so you can test, debug, and fix issues yourself without user hand-holding.
+- After backend changes, run tests for the affected code and fix failures before finishing.
+- When server code or embedded `wwwroot` assets change and the user (or you) needs a live `http://localhost:5000` instance to reflect those changes, **restart `QBModsBrowser.Server` yourself**: stop any running `QBModsBrowser.Server` process, then `dotnet run --project src/QBModsBrowser.Server/QBModsBrowser.Server.csproj --no-launch-profile` from the repo root (or equivalent). Do not only tell the user to restart.
+- **After killing the server for any reason (e.g. to free a locked file for build), always restart it immediately after the build succeeds** — unless the sole purpose of the task was to stop it. Never leave the server down as a side effect of a build or refactor.

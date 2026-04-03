@@ -1,0 +1,20 @@
+{
+  "name": "qbstarsectormodsbrowser",
+  "version": "2.0.0",
+  "description": "Local desktop-friendly web app for browsing Starsector mods scraped from the Fractal Softworks forum.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hambazumba/QBStarsectorModsBrowser.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/hambazumba/QBStarsectorModsBrowser/issues"
+  },
+  "homepage": "https://github.com/hambazumba/QBStarsectorModsBrowser#readme"
+}

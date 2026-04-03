@@ -1,0 +1,35 @@
+## .NET
+bin/
+obj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+.vs/
+
+## Data & logs (scraped content)
+data/
+logs/
+
+## Diagnostic / temp
+diag/
+diag-*.html
+.tmpbuild/
+publish/
+*.lnk
+*.exe
+QBMBAMM-win-x64*.zip
+
+## OS
+Thumbs.db
+.DS_Store
+
+## IDE
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+
+## Logs
+*.log

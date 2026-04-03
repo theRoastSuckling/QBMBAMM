@@ -1,0 +1,30 @@
+/* Mod profiles header section styles */
+
+/* Equipped state: thicker green border with subtle glow */
+.profile-equipped {
+    border-width: 2px;
+    box-shadow: 0 0 8px rgba(52, 211, 153, 0.15);
+}
+
+/* Equip button pulse while loading */
+.profile-equip-btn:disabled {
+    opacity: 0.6;
+    cursor: wait;
+}
+
+/* Inactive profile chips */
+.profile-chip {
+    line-height: 1.3;
+}
+
+/* Action buttons subtle hover */
+.profile-action-btn:disabled {
+    opacity: 0.4;
+    pointer-events: none;
+}
+
+/* Add button */
+.profile-add-btn:disabled {
+    opacity: 0.4;
+    cursor: wait;
+}

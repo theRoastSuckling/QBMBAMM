@@ -1,0 +1,413 @@
+/* Data linkage modal styles */
+
+.dlk-panel {
+    width: calc(100vw - 2rem);
+    height: calc(100vh - 2rem);
+    max-width: 1400px;
+    max-height: 960px;
+    overscroll-behavior: contain;
+}
+
+@media (min-width: 768px) {
+    .dlk-panel {
+        width: calc(100vw - 4rem);
+        height: calc(100vh - 4rem);
+    }
+}
+
+.dlk-overlay {
+    overscroll-behavior: contain;
+}
+
+.dlk-body {
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(99, 102, 241, 0.55) rgba(17, 24, 39, 0.55);
+}
+
+.dlk-body::-webkit-scrollbar {
+    width: 10px;
+}
+
+.dlk-body::-webkit-scrollbar-track {
+    background: rgba(17, 24, 39, 0.5);
+    border-radius: 9999px;
+}
+
+.dlk-body::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, rgba(129, 140, 248, 0.75), rgba(99, 102, 241, 0.65));
+    border-radius: 9999px;
+    border: 2px solid rgba(17, 24, 39, 0.65);
+}
+
+.dlk-body::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, rgba(165, 180, 252, 0.85), rgba(129, 140, 248, 0.75));
+}
+
+.dlk-topic-badge {
+    font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+    font-size: 0.65rem;
+    background: rgba(99, 102, 241, 0.15);
+    color: rgb(165, 180, 252);
+    border: 1px solid rgba(99, 102, 241, 0.3);
+    border-radius: 0.25rem;
+    padding: 0.15rem 0.5rem;
+}
+
+/* Overview header + source matrix */
+.dlk-overview-head {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.35rem;
+    margin-bottom: 0.9rem;
+}
+
+.dlk-hub-node {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.375rem 0.75rem;
+    border-radius: 0.5rem;
+    font-size: 0.8rem;
+    color: white;
+    background: rgba(99, 102, 241, 0.2);
+    border: 1.5px solid rgba(99, 102, 241, 0.5);
+}
+
+.dlk-source-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.45rem;
+}
+
+@media (min-width: 700px) {
+    .dlk-source-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+}
+
+@media (min-width: 1100px) {
+    .dlk-source-grid {
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+    }
+}
+
+.dlk-source-link {
+    display: inline-flex;
+    width: 100%;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-align: center;
+    padding: 0.28rem 0.45rem;
+    border-radius: 0.35rem;
+    white-space: nowrap;
+    transition: transform 120ms ease, filter 120ms ease;
+}
+
+.dlk-source-link:hover {
+    transform: translateY(-1px);
+    filter: brightness(1.05);
+}
+
+.dlk-source-dot {
+    width: 0.4rem;
+    height: 0.4rem;
+    border-radius: 9999px;
+    flex-shrink: 0;
+}
+
+.dlk-source-active .dlk-source-link {
+    color: rgb(167, 243, 208);
+    background: rgba(52, 211, 153, 0.1);
+    border: 1px solid rgba(52, 211, 153, 0.3);
+}
+
+.dlk-source-active .dlk-source-dot {
+    background: rgb(52, 211, 153);
+    box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+}
+
+.dlk-source-missing .dlk-source-link {
+    color: rgb(107, 114, 128);
+    background: rgba(75, 85, 99, 0.15);
+    border: 1px dashed rgba(75, 85, 99, 0.5);
+}
+
+.dlk-source-missing .dlk-source-dot {
+    background: rgb(107, 114, 128);
+}
+
+/* Cards grid */
+.dlk-cards-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+}
+
+@media (min-width: 900px) {
+    .dlk-cards-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+/* Source card */
+.dlk-card {
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+    overflow: hidden;
+}
+
+.dlk-card-present {
+    background: rgba(52, 211, 153, 0.04);
+    border: 1px solid rgba(52, 211, 153, 0.2);
+}
+
+.dlk-card-absent {
+    background: rgba(75, 85, 99, 0.08);
+    border: 1px dashed rgba(75, 85, 99, 0.4);
+}
+
+.dlk-card-header {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    font-size: 0.8rem;
+    color: rgb(229, 231, 235);
+    margin-bottom: 0.5rem;
+}
+
+.dlk-status-badge {
+    margin-left: auto;
+    font-size: 0.6rem;
+    font-weight: 600;
+    padding: 0.1rem 0.4rem;
+    border-radius: 9999px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.dlk-badge-ok {
+    color: rgb(167, 243, 208);
+    background: rgba(52, 211, 153, 0.15);
+}
+
+.dlk-badge-none {
+    color: rgb(156, 163, 175);
+    background: rgba(75, 85, 99, 0.2);
+}
+
+.dlk-card-connection {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.65rem;
+    color: rgb(156, 163, 175);
+    margin-bottom: 0.375rem;
+    padding: 0.25rem 0.375rem;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 0.25rem;
+}
+
+.dlk-inline-code {
+    font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+    background: rgba(17, 24, 39, 0.92);
+    color: rgb(243, 244, 246);
+    border: 1px solid rgba(148, 163, 184, 0.45);
+    border-radius: 0.2rem;
+    padding: 0 0.2rem;
+}
+
+.dlk-card-storage {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.375rem;
+    font-size: 0.6rem;
+    color: rgb(107, 114, 128);
+    margin-bottom: 0.5rem;
+}
+
+.dlk-path {
+    font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+    font-size: 0.6rem;
+    color: rgb(156, 163, 175);
+    word-break: break-all;
+}
+
+.dlk-card-data {
+    font-size: 0.7rem;
+}
+
+.dlk-card-empty {
+    font-size: 0.7rem;
+    color: rgb(107, 114, 128);
+    font-style: italic;
+    padding: 0.375rem 0;
+}
+
+.dlk-data-heading {
+    font-size: 0.6rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: rgb(156, 163, 175);
+    margin-bottom: 0.25rem;
+    padding-bottom: 0.2rem;
+    border-bottom: 1px solid rgba(75, 85, 99, 0.3);
+}
+
+/* Key/value rows */
+.dlk-kv {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    padding: 0.1rem 0;
+    min-height: 1.2rem;
+}
+
+.dlk-k {
+    flex-shrink: 0;
+    width: 6.5rem;
+    font-size: 0.6rem;
+    color: rgb(107, 114, 128);
+    text-align: right;
+}
+
+.dlk-v {
+    flex: 1;
+    min-width: 0;
+    font-size: 0.65rem;
+    color: rgb(209, 213, 219);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.dlk-v-wrap {
+    white-space: normal;
+    word-break: break-word;
+}
+
+/* Link rows */
+.dlk-link-row {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.1rem 0;
+}
+
+.dlk-link-ext {
+    flex-shrink: 0;
+    font-size: 0.55rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: rgb(251, 191, 36);
+    background: rgba(251, 191, 36, 0.1);
+    padding: 0 0.25rem;
+    border-radius: 0.125rem;
+}
+
+.dlk-link-url {
+    font-size: 0.6rem;
+    color: rgb(129, 140, 248);
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.dlk-link-url:hover {
+    color: rgb(165, 180, 252);
+}
+
+/* Local mod blocks */
+.dlk-local-mod-block {
+    padding: 0.5rem;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 0.375rem;
+    border: 1px solid rgba(75, 85, 99, 0.25);
+}
+
+.dlk-match-method {
+    font-size: 0.55rem;
+    font-weight: 600;
+    color: rgb(129, 140, 248);
+    background: rgba(99, 102, 241, 0.1);
+    padding: 0.1rem 0.35rem;
+    border-radius: 0.2rem;
+}
+
+.dlk-installed-badge {
+    font-size: 0.55rem;
+    font-weight: 600;
+    padding: 0.1rem 0.35rem;
+    border-radius: 0.2rem;
+    color: rgb(156, 163, 175);
+    background: rgba(75, 85, 99, 0.2);
+}
+
+.dlk-badge-qb {
+    color: rgb(96, 165, 250) !important;
+    background: rgba(59, 130, 246, 0.15) !important;
+}
+
+.dlk-dep-chip {
+    display: inline-block;
+    font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+    font-size: 0.55rem;
+    color: rgb(209, 213, 219);
+    background: rgba(75, 85, 99, 0.2);
+    border: 1px solid rgba(75, 85, 99, 0.3);
+    border-radius: 0.2rem;
+    padding: 0 0.3rem;
+    margin: 0.1rem 0.15rem 0.1rem 0;
+}
+
+.dlk-modid-chip {
+    display: inline-block;
+    font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+    font-size: 0.6rem;
+    color: rgb(165, 180, 252);
+    background: rgba(99, 102, 241, 0.1);
+    border: 1px solid rgba(99, 102, 241, 0.2);
+    border-radius: 0.2rem;
+    padding: 0 0.3rem;
+    margin-right: 0.25rem;
+}
+
+/* Version checker / archive / assumed blocks */
+.dlk-vc-block,
+.dlk-archive-block,
+.dlk-assumed-block {
+    padding: 0.375rem;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 0.25rem;
+    border: 1px solid rgba(75, 85, 99, 0.2);
+}
+
+.dlk-confidence-badge {
+    font-size: 0.55rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    padding: 0.1rem 0.35rem;
+    border-radius: 0.2rem;
+}
+
+.dlk-conf-high {
+    color: rgb(167, 243, 208);
+    background: rgba(52, 211, 153, 0.15);
+}
+
+.dlk-conf-medium {
+    color: rgb(253, 224, 71);
+    background: rgba(234, 179, 8, 0.1);
+}
+
+.dlk-conf-low {
+    color: rgb(252, 165, 165);
+    background: rgba(239, 68, 68, 0.1);
+}

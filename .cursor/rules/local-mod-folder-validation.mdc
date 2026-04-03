@@ -1,0 +1,8 @@
+---
+description: Use local mods folder for testing, validation, gathering test/check data
+alwaysApply: true
+---
+
+# Local Mod Folder Validation
+
+Use the local mod folder as a source when checking mod data and testing behavior.

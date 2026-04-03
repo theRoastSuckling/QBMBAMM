@@ -1,0 +1,9 @@
+---
+description: Prefer DRY shared helpers over duplicated logic
+alwaysApply: true
+---
+
+# DRY Shared Helpers
+
+Avoid duplicated logic by reusing or extracting a single shared helper whenever the same behavior appears in more than one place.
+Match new hover/tooltip visuals to existing hover/tooltip styles already used in the UI.

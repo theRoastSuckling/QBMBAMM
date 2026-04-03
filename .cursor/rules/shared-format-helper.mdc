@@ -1,0 +1,8 @@
+---
+description: Reuse shared backend format helper
+alwaysApply: true
+---
+
+# Shared Format Helper
+
+Use `QBModsBrowser.Server.Utilities.FormatHelper` for backend formatting before adding new ad-hoc format strings.

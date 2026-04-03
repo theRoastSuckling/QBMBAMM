@@ -1,0 +1,14 @@
+---
+description: Fix root causes before adding defensive layers
+alwaysApply: true
+---
+
+# Root Cause First
+
+When fixing bugs, prioritize removing the actual source of bad behavior instead of adding broad defensive code paths.
+
+- Prefer minimal, direct fixes at the origin of the issue (parser, transformer, data write path, or core logic).
+- Avoid fallback/normalization patches in downstream UI/controller layers unless explicitly requested.
+- Add defensive code only when the root cause cannot be fixed safely now, and explain why in the final response.
+- If temporary defensive code is required, keep it narrow and create a follow-up task to remove it after root-cause fix lands.
+

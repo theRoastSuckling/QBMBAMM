@@ -24,7 +24,7 @@
                 <div>
                     <div class="flex items-baseline gap-2">
                         <h1 class="text-xl font-bold text-white tracking-tight">QB Mod Browser and Mod Manager</h1>
-                        <span class="text-xs text-indigo-200/80 font-mono">v2.0.12</span>
+                        <span class="text-xs text-indigo-200/80 font-mono">v2.0.13</span>
                     </div>
                     <div class="flex items-center gap-3 mt-0.5">
                         <span class="text-xs text-indigo-100/70" x-text="clock"></span>
@@ -419,7 +419,7 @@
                     <div class="flex min-h-[5rem]">
                         <template x-if="mod.thumbnailPath">
                             <div class="mod-thumb-wrap shrink-0">
-                                <img :src="mod.thumbnailPath.startsWith('ext:') ? mod.thumbnailPath.slice(4) : '/api/images/' + mod.topicId + '/' + mod.thumbnailPath"
+                                <img :src="mod.thumbnailPath.slice(4)"
                                     class="mod-thumb-img" alt="" @error="$el.style.display='none'" loading="lazy">
                             </div>
                         </template>
@@ -1058,6 +1058,7 @@
     <div x-ref="setupPromptMount"></div>
 </body>
 </html>
+
 
 
 

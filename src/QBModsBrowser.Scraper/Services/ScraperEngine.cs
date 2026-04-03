@@ -94,7 +94,6 @@ public class ScraperEngine : IAsyncDisposable
             var boardScraper = new BoardScraper(_log, _pageDelayMs);
             var topicScraper = new TopicScraper(_log, _topicDelayMs);
             var modIndexCategoryScraper = new ModIndexCategoryScraper(_log);
-            var imageDownloader = new ImageDownloader(_log, _dataPath);
             var htmlProcessor = new HtmlProcessor(_log);
             var existingIndex = await _store.LoadIndex();
             var indexMap = existingIndex.ToDictionary(m => m.TopicId);
@@ -290,23 +289,6 @@ public class ScraperEngine : IAsyncDisposable
                     }
                     summary.CreatedDate = detail.PostDate;
                     summary.ScrapedAt = DateTime.UtcNow;
-
-                    foreach (var img in detail.Images)
-                    {
-                        ct.ThrowIfCancellationRequested();
-                        CurrentJob.TotalImages++;
-
-                        // Only download images hosted on the forum; leave external ones as-is
-                        if (!ForumConstants.IsForumHosted(img.OriginalUrl))
-                            continue;
-
-                        var localFile = await imageDownloader.DownloadImage(img.OriginalUrl, detail.TopicId, ct);
-                        if (localFile != null)
-                        {
-                            img.LocalPath = localFile;
-                            CurrentJob.DownloadedImages++;
-                        }
-                    }
 
                     detail.ContentHtml = htmlProcessor.ProcessHtml(detail.ContentHtml, detail.TopicId, detail.Images);
                     await _store.SaveDetail(detail);

@@ -20,21 +20,6 @@ public class ImagesController : ControllerBase
         _store = store;
     }
 
-    // Serves locally scraped per-topic images from disk.
-    [HttpGet("{topicId}/{filename}")]
-    public IActionResult GetImage(int topicId, string filename)
-    {
-        filename = Path.GetFileName(filename);
-
-        string path = Path.Combine(_store.BasePath, "mods", topicId.ToString(), "images", filename);
-
-        if (!System.IO.File.Exists(path))
-            return NotFound();
-
-        string contentType = DetectContentType(path);
-        return PhysicalFile(path, contentType);
-    }
-
     // Proxies external image URLs; caches to disk when CacheExternalImages is enabled, redirects otherwise.
     [HttpGet("external")]
     public async Task<IActionResult> GetExternalImage([FromQuery] string url, CancellationToken ct)

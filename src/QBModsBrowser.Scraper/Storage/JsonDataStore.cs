@@ -162,27 +162,11 @@ public class JsonDataStore
         return _statsCache;
     }
 
-    // Picks a representative thumbnail from local images or external fallbacks.
+    // Picks a representative thumbnail from the topic's image list, preferring non-badge external URLs.
     public string? PickThumbnail(int topicId, List<ImageRef> images)
     {
-        string imagesDir = Path.Combine(_basePath, "mods", topicId.ToString(), "images");
-
         foreach (var img in images)
         {
-            if (string.IsNullOrEmpty(img.LocalPath)) continue;
-            string filePath = Path.Combine(imagesDir, img.LocalPath);
-            try
-            {
-                var fi = new FileInfo(filePath);
-                if (fi.Exists && fi.Length >= 10_000)
-                    return img.LocalPath;
-            }
-            catch { }
-        }
-
-        foreach (var img in images)
-        {
-            if (!string.IsNullOrEmpty(img.LocalPath)) continue;
             string url = img.OriginalUrl;
             if (url.Contains("shields.io", StringComparison.OrdinalIgnoreCase)) continue;
             if (url.Contains("loading.gif", StringComparison.OrdinalIgnoreCase)) continue;

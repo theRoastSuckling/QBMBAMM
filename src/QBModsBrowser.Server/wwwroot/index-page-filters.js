@@ -30,6 +30,7 @@ function buildListFilterMethods() {
                     if (typeof o.panelBoards.lesser === 'boolean') this.panel.boards.lesser = o.panelBoards.lesser;
                     if (typeof o.panelBoards.libraries === 'boolean') this.panel.boards.libraries = o.panelBoards.libraries;
                 }
+                if (typeof o.panelLogShowInf === 'boolean') this.panel.logShowInf = o.panelLogShowInf;
             } catch (_) {}
         },
 
@@ -52,7 +53,8 @@ function buildListFilterMethods() {
                     updatesFirst: this.updatesFirst,
                     installedFirst: this.installedFirst,
                     installedCategoryFirst: this.installedCategoryFirst,
-                    panelBoards: this.panel?.boards
+                    panelBoards: this.panel?.boards,
+                    panelLogShowInf: this.panel?.logShowInf
                 }));
             } catch (_) {}
         },

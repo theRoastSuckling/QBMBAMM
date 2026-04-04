@@ -61,6 +61,7 @@ function modsApp() {
         unmatchedDeps: [],
         // Initializes filters, timers, and first data fetches on page load.
         async init() {
+            await this.loadControlPanelTemplate();
             await this.loadInstallsPanelTemplate();
             await this.loadSetupPromptTemplate();
             this.loadFilters();
@@ -148,6 +149,23 @@ function modsApp() {
                 easing: 'cubic-bezier(0.22, 1, 0.36, 1)'
             });
             anim.onfinish = () => { anim.cancel(); };
+        },
+
+        // Loads the control panel drawer markup from a dedicated HTML partial and initializes Alpine bindings.
+        async loadControlPanelTemplate() {
+            const mount = this.$refs.controlPanelMount;
+            if (!mount) return;
+            try {
+                const res = await fetch('/control-panel.html', { cache: 'no-store' });
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                mount.innerHTML = await res.text();
+                if (window.Alpine?.initTree) {
+                    window.Alpine.initTree(mount);
+                }
+            } catch (e) {
+                console.error('Failed to load control panel template:', e);
+                mount.innerHTML = '<div class="text-xs text-red-300 p-4">Failed to load Control Panel.</div>';
+            }
         },
 
         // Loads the installs panel markup from a dedicated HTML partial and initializes Alpine bindings.

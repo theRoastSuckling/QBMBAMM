@@ -2,8 +2,6 @@ using Microsoft.AspNetCore.Mvc;
 using QBModsBrowser.Scraper.Models;
 using QBModsBrowser.Scraper.Storage;
 using QBModsBrowser.Server.Services;
-using Serilog.Core;
-using Serilog.Events;
 
 namespace QBModsBrowser.Server.Controllers;
 
@@ -15,14 +13,12 @@ public class ScraperController : ControllerBase
     private readonly ScraperOrchestrator _orchestrator;
     private readonly JsonDataStore _store;
     private readonly IConfiguration _config;
-    private readonly LoggingLevelSwitch _consoleLevelSwitch;
 
-    public ScraperController(ScraperOrchestrator orchestrator, JsonDataStore store, IConfiguration config, LoggingLevelSwitch consoleLevelSwitch)
+    public ScraperController(ScraperOrchestrator orchestrator, JsonDataStore store, IConfiguration config)
     {
         _orchestrator = orchestrator;
         _store = store;
         _config = config;
-        _consoleLevelSwitch = consoleLevelSwitch;
     }
 
     [HttpGet("status")]
@@ -143,23 +139,20 @@ public class ScraperController : ControllerBase
         return Ok(config);
     }
 
+    // Persists updated scraper config.
     [HttpPut("config")]
     public async Task<IActionResult> UpdateConfig([FromBody] ScraperConfig config)
     {
         await _store.SaveConfig(config);
-        // Apply console log-level preference immediately without requiring a restart.
-        _consoleLevelSwitch.MinimumLevel = config.ShowInfoConsoleLogs
-            ? LogEventLevel.Information
-            : LogEventLevel.Warning;
         return Ok(config);
     }
 
     [HttpGet("logs")]
     public async Task<IActionResult> GetLogs([FromQuery] int lines = 100, [FromQuery] string type = "scraper")
     {
-        string logPath = Path.GetFullPath(
-            _config["LogPath"] ?? "../../logs",
-            Directory.GetCurrentDirectory());
+        // Use the pre-resolved path stored at startup; avoids CWD-relative mismatches when running as an exe.
+        string logPath = _config["ResolvedLogPath"]
+            ?? Path.GetFullPath(_config["LogPath"] ?? "../../logs", AppContext.BaseDirectory);
 
         string prefix = type == "server" ? "server-" : "scraper-";
         var logFiles = Directory.Exists(logPath)
@@ -212,5 +205,4 @@ public class ScraperController : ControllerBase
         return Ok(new { message = $"Backfilled {updated} thumbnails", updated });
     }
 }
-
 

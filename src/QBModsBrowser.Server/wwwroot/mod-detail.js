@@ -242,8 +242,12 @@ function modDetail() {
 
                 if (body && !body.querySelector('.sp-collapse-bar')) {
                     const bar = document.createElement('div');
-                    bar.className = 'sp-collapse-bar';
-                    bar.title = 'Click to collapse';
+                    bar.className = 'sp-collapse-bar relative group';
+                    // Custom tooltip span replacing native title tooltip
+                    const tip = document.createElement('span');
+                    tip.className = 'pointer-events-none absolute bottom-full left-1/2 z-50 mb-1 -translate-x-1/2 whitespace-nowrap rounded bg-gray-900 px-2 py-0.5 text-[10px] font-medium text-white opacity-0 shadow-lg transition-opacity duration-0 group-hover:opacity-100';
+                    tip.textContent = 'Click to collapse';
+                    bar.appendChild(tip);
                     bar.addEventListener('click', () => wrap.classList.remove('open'));
 
                     const content = document.createElement('div');

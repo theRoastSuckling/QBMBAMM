@@ -24,7 +24,7 @@
                 <div>
                     <div class="flex items-baseline gap-2">
                         <h1 class="text-xl font-bold text-white tracking-tight">QB Mod Browser and Mod Manager</h1>
-                        <span class="text-xs text-indigo-200/80 font-mono">v2.0.13</span>
+                        <span class="text-xs text-indigo-200/80 font-mono">v2.1.1</span>
                     </div>
                     <div class="flex items-center gap-3 mt-0.5">
                         <span class="text-xs text-indigo-100/70" x-text="clock"></span>
@@ -58,9 +58,9 @@
                         <button
                             @click="fetchHeaderStats()"
                             type="button"
-                            class="inline-flex self-center items-center justify-center w-5 h-5 rounded text-indigo-200/80 hover:text-white hover:bg-white/10 transition"
-                            title="Refresh scraper status"
+                            class="relative group inline-flex self-center items-center justify-center w-5 h-5 rounded text-indigo-200/80 hover:text-white hover:bg-white/10 transition"
                             aria-label="Refresh scraper status">
+                            <span class="pointer-events-none absolute bottom-full left-1/2 z-50 mb-1 -translate-x-1/2 whitespace-nowrap rounded bg-gray-900 px-2 py-0.5 text-[10px] font-medium text-white opacity-0 shadow-lg transition-opacity duration-0 group-hover:opacity-100">Refresh scraper status</span>
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M4 4v5h.582m14.836 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0A8.003 8.003 0 015.664 15m13.755 0H15" />
@@ -113,9 +113,10 @@
                     class="w-full bg-surface-alt border border-gray-600 rounded px-3 py-2 pr-9 text-sm focus:outline-none focus:border-accent"
                     x-model="search" @input="onSearchChanged()">
                 <button type="button"
-                    class="absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 rounded text-gray-400 hover:text-white hover:bg-white/10 grid place-items-center transition"
+                    class="relative group absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 rounded text-gray-400 hover:text-white hover:bg-white/10 grid place-items-center transition"
                     x-show="search.length > 0" x-cloak
-                    @click="clearSearch()" title="Clear search">
+                    @click="clearSearch()" aria-label="Clear search">
+                    <span class="pointer-events-none absolute bottom-full left-1/2 z-50 mb-1 -translate-x-1/2 whitespace-nowrap rounded bg-gray-900 px-2 py-0.5 text-[10px] font-medium text-white opacity-0 shadow-lg transition-opacity duration-0 group-hover:opacity-100">Clear search</span>
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 6l12 12M18 6L6 18"/>
                     </svg>
@@ -125,10 +126,11 @@
             <div class="relative min-w-[8.4rem] max-w-[10.8rem] shrink-0"
                 @keydown.escape.window="versionMenuOpen = false">
                 <button type="button"
-                    class="version-menu-trigger w-full flex items-center justify-between gap-1 bg-surface-alt border border-gray-600 rounded px-3 py-2 text-sm text-left text-gray-200 hover:border-gray-500 focus:outline-none focus:ring-1 focus:ring-accent focus:border-accent"
+                    class="relative group version-menu-trigger w-full flex items-center justify-between gap-1 bg-surface-alt border border-gray-600 rounded px-3 py-2 text-sm text-left text-gray-200 hover:border-gray-500 focus:outline-none focus:ring-1 focus:ring-accent focus:border-accent"
                     @click="versionMenuOpen = !versionMenuOpen"
                     :aria-expanded="versionMenuOpen"
-                    title="Show mods for this game version and newer">
+                    aria-label="Show mods for this game version and newer">
+                    <span class="pointer-events-none absolute bottom-full left-1/2 z-50 mb-1 -translate-x-1/2 whitespace-nowrap rounded bg-gray-900 px-2 py-0.5 text-[10px] font-medium text-white opacity-0 shadow-lg transition-opacity duration-0 group-hover:opacity-100">Show mods for this game version and newer</span>
                     <span class="truncate" x-text="versionSelectLabel()"></span>
                     <svg class="w-4 h-4 shrink-0 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
@@ -275,7 +277,7 @@
                     <button type="button"
                         @click="openWelcomePopup()"
                         class="w-9 h-9 rounded border border-gray-600 bg-surface-alt grid place-items-center text-gray-400 hover:text-white transition"
-                        title="Keyboard shortcuts — click for welcome guide">
+                        aria-label="Keyboard shortcuts and welcome guide">
                         <iconify-icon icon="heroicons:information-circle" width="18" height="18"></iconify-icon>
                     </button>
                     <div class="pointer-events-none absolute top-full left-0 z-50 mt-2 w-60 rounded bg-gray-900 border border-gray-700 px-3 py-2.5 text-xs text-gray-200 shadow-xl opacity-0 transition-opacity duration-0 group-hover:opacity-100">
@@ -438,7 +440,7 @@
                                         @click.prevent.stop="toggleFavorite(mod.topicId)"
                                         class="mod-summary-star-btn flex shrink-0 items-center justify-center rounded hover:bg-white/10 transition focus:outline-none focus-visible:ring-1 focus-visible:ring-accent"
                                         :aria-pressed="isFavorite(mod.topicId)"
-                                        title="Favorite">
+                                        aria-label="Favorite">
                                         <iconify-icon :icon="isFavorite(mod.topicId) ? 'mdi:star' : 'mdi:star-outline'"
                                             class="favorite-star-icon"
                                             :class="isFavorite(mod.topicId) ? 'text-amber-400' : 'text-gray-500 opacity-80'"></iconify-icon>
@@ -644,396 +646,10 @@
     <div class="w-72 shrink-0" x-ref="installsPanelMount"></div>
     </div>
 
-    <!-- Control Panel Drawer -->
-    <div x-show="panel.open" x-cloak class="fixed inset-0 z-50 flex justify-end" @keydown.escape.window="panel.open = false">
-        <div class="drawer-overlay absolute inset-0" @click="panel.open = false"></div>
-        <div class="drawer-panel relative w-full max-w-[35.2rem] overflow-y-auto border-l border-gray-700"
-            x-show="panel.open"
-            x-transition:enter="transition ease-out duration-200"
-            x-transition:enter-start="translate-x-full" x-transition:enter-end="translate-x-0"
-            x-transition:leave="transition ease-in duration-150"
-            x-transition:leave-start="translate-x-0" x-transition:leave-end="translate-x-full">
+    <!-- Control Panel Drawer (loaded from control-panel.html) -->
+    <div x-ref="controlPanelMount"></div>
 
-            <!-- Drawer header -->
-            <div class="sticky top-0 z-10 bg-surface-alt border-b border-gray-700 px-5 py-4 flex items-center justify-between">
-                <h2 class="text-base font-bold text-white">Control Panel</h2>
-                <button @click="panel.open = false" class="text-gray-400 hover:text-white transition p-1">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                </button>
-            </div>
 
-            <div class="p-5 space-y-5">
-
-                <!-- Mod Manager -->
-                <div class="bg-surface-alt rounded-lg border border-gray-700 p-4">
-                    <h3 class="text-sm font-semibold text-white mb-3">Mod Manager</h3>
-                    <div class="space-y-3">
-                        <div>
-                            <label class="text-[10px] text-gray-400 block mb-1">Starsector Mods Folder</label>
-                            <div class="flex gap-2">
-                                <input type="text" x-model="managerConfig.modsPath"
-                                    class="flex-1 bg-surface border border-gray-600 rounded px-2 py-1.5 text-sm text-gray-200"
-                                    placeholder="D:\GAMES\Starsector\mods">
-                                <button @click="saveManagerConfig()"
-                                    class="px-3 py-1.5 bg-accent hover:bg-accent-hover text-white rounded text-xs font-medium transition">
-                                    Save
-                                </button>
-                            </div>
-                        </div>
-                        <div class="flex flex-wrap gap-2">
-                            <button @click="rescanLocalMods()"
-                                class="px-3 py-1.5 rounded text-xs transition bg-surface-raised text-gray-300 hover:bg-gray-600">
-                                Rescan Mods
-                            </button>
-                            <button @click="checkUpdates()"
-                                class="px-3 py-1.5 rounded text-xs transition bg-surface-raised text-gray-300 hover:bg-gray-600">
-                                Check Updates
-                            </button>
-                            <button @click="refreshModRepo()"
-                                class="px-3 py-1.5 rounded text-xs transition bg-surface-raised text-gray-300 hover:bg-gray-600">
-                                Refresh ModRepo
-                            </button>
-                        </div>
-                        <p class="text-[10px] text-gray-500" x-show="managerMessage" x-text="managerMessage"></p>
-                    </div>
-                </div>
-
-                <!-- Forum scrape: status, controls, timing, and auto-scrape in one collapsible block. -->
-                <div class="bg-surface-alt rounded-lg border border-gray-700 overflow-hidden">
-                    <button type="button"
-                        id="panel-forum-scrape-trigger"
-                        :aria-expanded="panel.scrapeSectionExpanded"
-                        aria-controls="panel-forum-scrape-body"
-                        @click="panel.scrapeSectionExpanded = !panel.scrapeSectionExpanded"
-                        class="w-full flex items-center justify-between gap-3 px-4 py-3 text-left hover:bg-white/[0.04] transition">
-                        <div class="flex items-center gap-2 min-w-0 flex-wrap">
-                            <span class="text-sm font-semibold text-white">Forum scraping</span>
-                            <span class="inline-flex items-center gap-1.5 text-xs text-amber-400" x-show="panel.status.isScraping" x-cloak>
-                                <span class="w-2 h-2 rounded-full bg-amber-500 pulse-glow shrink-0"></span>
-                                Running
-                            </span>
-                        </div>
-                        <span class="shrink-0 text-gray-400 transition-transform duration-200 inline-flex"
-                            :class="panel.scrapeSectionExpanded ? 'rotate-180' : ''">
-                            <iconify-icon icon="heroicons:chevron-down" width="20" height="20"></iconify-icon>
-                        </span>
-                    </button>
-                    <div id="panel-forum-scrape-body" role="region" aria-labelledby="panel-forum-scrape-trigger"
-                        x-show="panel.scrapeSectionExpanded" x-transition
-                        class="border-t border-gray-700 p-4 space-y-5">
-
-                <!-- Status -->
-                <div class="bg-surface-alt rounded-lg border border-gray-700 p-4">
-                    <div class="flex items-center justify-between mb-3">
-                        <h3 class="text-sm font-semibold text-white">Scraper Status</h3>
-                        <div class="flex items-center gap-2">
-                            <span class="w-2.5 h-2.5 rounded-full"
-                                :class="{
-                                    'bg-green-500': panel.status.state === 'idle' || panel.status.state === 'completed',
-                                    'bg-amber-500 pulse-glow': panel.status.state === 'scraping',
-                                    'bg-red-500': panel.status.state === 'failed',
-                                    'bg-gray-500': panel.status.state === 'cancelled'
-                                }"></span>
-                            <span class="text-sm font-medium capitalize" x-text="panel.status.state || 'Unknown'"></span>
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
-                        <div>
-                            <p class="text-xl font-bold text-white" x-text="panel.status.stats?.totalMods ?? '-'"></p>
-                            <p class="text-[10px] text-gray-500">Mods</p>
-                        </div>
-                        <div>
-                            <p class="text-xl font-bold text-white" x-text="panel.status.stats?.totalImages ?? '-'"></p>
-                            <p class="text-[10px] text-gray-500">Images</p>
-                        </div>
-                        <div>
-                            <p class="text-xl font-bold text-white" x-text="panel.status.stats?.totalSizeFormatted ?? '-'"></p>
-                            <p class="text-[10px] text-gray-500">Data Size</p>
-                        </div>
-                        <div>
-                            <p class="text-xl font-bold text-white" x-text="panel.status.job?.duration ?? '-'"></p>
-                            <p class="text-[10px] text-gray-500">Duration</p>
-                        </div>
-                    </div>
-                    <div class="mt-3 text-xs text-gray-500 space-y-0.5" x-show="panel.status.job?.finishedAt">
-                        <p>Finished: <span class="text-gray-400" x-text="panel.formatDate(panel.status.job?.finishedAt)"></span></p>
-                        <p x-show="panel.status.lastResult">
-                            Result: <span class="text-gray-400"
-                                x-text="(panel.status.lastResult?.modsScraped ?? 0) + ' mods, ' +
-                                        (panel.status.lastResult?.imagesDownloaded ?? 0) + ' images, ' +
-                                        (panel.status.lastResult?.errors ?? 0) + ' errors'"></span>
-                        </p>
-                    </div>
-                </div>
-
-                <!-- Progress -->
-                <div class="bg-surface-alt rounded-lg border border-gray-700 p-4" x-show="panel.status.isScraping" x-cloak>
-                    <h3 class="text-sm font-semibold text-white mb-2">Progress</h3>
-                    <div class="flex justify-between text-xs text-gray-400 mb-1">
-                        <div class="flex flex-col min-w-0 mr-2">
-                            <span class="truncate text-[10px] text-gray-500 leading-tight" x-show="panel.status.job?.currentPhase" x-text="panel.status.job?.currentPhase"></span>
-                            <span class="truncate text-gray-300" x-text="panel.status.job?.currentItem || (panel.status.job?.currentPhase ? '…' : 'Starting...')"></span>
-                        </div>
-                        <span class="shrink-0" x-text="(panel.status.job?.totalTopics ?? 0) === 0 && panel.status.job?.currentPhase ? '—' : ((panel.status.job?.processedTopics ?? 0) + ' / ' + (panel.status.job?.totalTopics ?? '?'))"></span>
-                    </div>
-                    <div class="w-full bg-surface-raised rounded-full h-2 mb-2">
-                        <div class="bg-accent h-2 rounded-full transition-all duration-500"
-                            :style="'width: ' + (panel.status.job?.progressPercent ?? 0) + '%'"></div>
-                    </div>
-                    <div class="flex gap-3 text-[10px] text-gray-500">
-                        <span>Topics: <span class="text-gray-400" x-text="panel.status.job?.processedTopics ?? 0"></span></span>
-                        <span>Imgs: <span class="text-gray-400" x-text="panel.status.job?.downloadedImages ?? 0"></span></span>
-                        <span>Errs: <span class="text-gray-400" x-text="panel.status.job?.errors ?? 0"></span></span>
-                    </div>
-                </div>
-
-                <!-- Scrape Controls -->
-                <div class="bg-surface-alt rounded-lg border border-gray-700 p-4">
-                    <h3 class="text-sm font-semibold text-white mb-3">Scrape Controls</h3>
-                    <div class="space-y-3 mb-4">
-                        <label class="text-xs text-gray-400 block">Scope</label>
-                        <div class="flex flex-wrap gap-2">
-                            <button class="px-3 py-1.5 rounded text-xs transition"
-                                :class="panel.scope === 'new' ? 'bg-accent text-white' : 'bg-surface-raised text-gray-300 hover:bg-gray-600'"
-                                @click="panel.scope = 'new'">New Data</button>
-                            <button class="px-3 py-1.5 rounded text-xs transition"
-                                :class="panel.scope === 'all' ? 'bg-accent text-white' : 'bg-surface-raised text-gray-300 hover:bg-gray-600'"
-                                @click="panel.scope = 'all'">All Pages</button>
-                            <button class="px-3 py-1.5 rounded text-xs transition"
-                                :class="panel.scope === 'pages' ? 'bg-accent text-white' : 'bg-surface-raised text-gray-300 hover:bg-gray-600'"
-                                @click="panel.scope = 'pages'">First N Pages</button>
-                            <button class="px-3 py-1.5 rounded text-xs transition"
-                                :class="panel.scope === 'topics' ? 'bg-accent text-white' : 'bg-surface-raised text-gray-300 hover:bg-gray-600'"
-                                @click="panel.scope = 'topics'">Specific Topics</button>
-                        </div>
-                        <div x-show="panel.scope !== 'topics'">
-                            <label class="text-xs text-gray-400 block mb-1.5">Boards</label>
-                            <div class="flex flex-wrap gap-2">
-                                <button class="px-3 py-1.5 rounded text-xs transition"
-                                    :class="panel.boards.main ? 'bg-accent text-white' : 'bg-surface-raised text-gray-300 hover:bg-gray-600'"
-                                    @click="panel.toggleBoard('main')"
-                                    title="Main mods board (board 8)">Main (8)</button>
-                                <button class="px-3 py-1.5 rounded text-xs transition"
-                                    :class="panel.boards.lesser ? 'bg-accent text-white' : 'bg-surface-raised text-gray-300 hover:bg-gray-600'"
-                                    @click="panel.toggleBoard('lesser')"
-                                    title="Lesser mods board (board 3) — capped at 20 pages">Lesser (3)</button>
-                                <button class="px-3 py-1.5 rounded text-xs transition"
-                                    :class="panel.boards.libraries ? 'bg-accent text-white' : 'bg-surface-raised text-gray-300 hover:bg-gray-600'"
-                                    @click="panel.toggleBoard('libraries')"
-                                    title="Modding Resources board (board 9)">Libraries (9)</button>
-                            </div>
-                        </div>
-                        <div x-show="panel.scope === 'pages'" class="flex items-center gap-2">
-                            <label class="text-xs text-gray-400">Pages:</label>
-                            <input type="number" min="1" max="34" x-model.number="panel.maxPages"
-                                class="w-20 bg-surface border border-gray-600 rounded px-2 py-1 text-sm">
-                        </div>
-                        <div x-show="panel.scope === 'topics'">
-                            <label class="text-xs text-gray-400 block mb-1">Topic IDs (comma-separated):</label>
-                            <input type="text" x-model="panel.topicIdsStr" placeholder="e.g. 30407, 25296"
-                                class="w-full bg-surface border border-gray-600 rounded px-2 py-1 text-sm">
-                        </div>
-                    </div>
-                    <div class="flex gap-2">
-                        <button @click="panel.startScrape()"
-                            :disabled="panel.status.isScraping"
-                            class="px-4 py-1.5 bg-accent hover:bg-accent-hover text-white rounded text-sm font-medium transition disabled:opacity-40 disabled:cursor-not-allowed">
-                            Scrape Now
-                        </button>
-                        <button @click="panel.stopScrape()" x-show="panel.status.isScraping"
-                            class="px-4 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded text-sm font-medium transition">
-                            Stop
-                        </button>
-                    </div>
-                    <p class="text-xs text-gray-500 mt-2" x-show="panel.message" x-text="panel.message"></p>
-                </div>
-
-                <!-- Scrape Timing -->
-                <div class="bg-surface-alt rounded-lg border border-gray-700 p-4">
-                    <h3 class="text-sm font-semibold text-white mb-3">Scrape Timing (All Scrapes)</h3>
-                    <div class="flex flex-wrap items-end gap-3 mb-3">
-                        <div>
-                            <label class="text-[10px] text-gray-400 block mb-1">Page delay (ms)</label>
-                            <div class="panel-number-wrap">
-                                <input type="number" min="500" step="100" x-model.number="panel.config.delayBetweenPagesMs"
-                                    @change="panel.saveConfig({ silent: true })"
-                                    class="panel-number-input">
-                                <div class="panel-stepper">
-                                    <button type="button" class="panel-stepper-btn"
-                                        @click="panel.config.delayBetweenPagesMs = Math.max(500, Number(panel.config.delayBetweenPagesMs || 500) + 100); panel.saveConfig({ silent: true })"
-                                        title="Increase">
-                                        <svg class="w-2.5 h-2.5" viewBox="0 0 20 20" fill="currentColor"><path d="M5 12l5-5 5 5H5z"/></svg>
-                                    </button>
-                                    <button type="button" class="panel-stepper-btn"
-                                        @click="panel.config.delayBetweenPagesMs = Math.max(500, Number(panel.config.delayBetweenPagesMs || 500) - 100); panel.saveConfig({ silent: true })"
-                                        title="Decrease">
-                                        <svg class="w-2.5 h-2.5" viewBox="0 0 20 20" fill="currentColor"><path d="M5 8l5 5 5-5H5z"/></svg>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                        <div>
-                            <label class="text-[10px] text-gray-400 block mb-1">Topic delay (ms)</label>
-                            <div class="panel-number-wrap">
-                                <input type="number" min="500" step="100" x-model.number="panel.config.delayBetweenTopicsMs"
-                                    @change="panel.saveConfig({ silent: true })"
-                                    class="panel-number-input">
-                                <div class="panel-stepper">
-                                    <button type="button" class="panel-stepper-btn"
-                                        @click="panel.config.delayBetweenTopicsMs = Math.max(500, Number(panel.config.delayBetweenTopicsMs || 500) + 100); panel.saveConfig({ silent: true })"
-                                        title="Increase">
-                                        <svg class="w-2.5 h-2.5" viewBox="0 0 20 20" fill="currentColor"><path d="M5 12l5-5 5 5H5z"/></svg>
-                                    </button>
-                                    <button type="button" class="panel-stepper-btn"
-                                        @click="panel.config.delayBetweenTopicsMs = Math.max(500, Number(panel.config.delayBetweenTopicsMs || 500) - 100); panel.saveConfig({ silent: true })"
-                                        title="Decrease">
-                                        <svg class="w-2.5 h-2.5" viewBox="0 0 20 20" fill="currentColor"><path d="M5 8l5 5 5-5H5z"/></svg>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <p class="text-[10px] text-gray-500 mb-3">
-                        Page delay waits between board pages. Topic delay waits between opening topic threads.
-                        Both apply to manual and auto scrapes.
-                    </p>
-                </div>
-
-                <!-- Config -->
-                <div class="bg-surface-alt rounded-lg border border-gray-700 p-4">
-                    <h3 class="text-sm font-semibold text-white mb-3">New Data Auto-Scrape</h3>
-                    <p class="text-xs text-gray-400 mb-3">
-                        New data means brand-new topic IDs or existing topics whose board Last post value changed.
-                        Auto-scrape always uses this rule.
-                    </p>
-                    <div class="flex flex-wrap items-end gap-3 mb-3">
-                        <div>
-                            <label class="text-[10px] text-gray-400 block mb-1">Interval (hrs, 0=off)</label>
-                            <div class="panel-number-wrap">
-                                <input type="number" min="0" step="0.5" x-model.number="panel.config.autoScrapeIntervalHours"
-                                    @change="panel.saveConfig({ silent: true })"
-                                    class="panel-number-input">
-                                <div class="panel-stepper">
-                                    <button type="button" class="panel-stepper-btn"
-                                        @click="panel.config.autoScrapeIntervalHours = Math.max(0, Number(panel.config.autoScrapeIntervalHours || 0) + 0.5); panel.saveConfig({ silent: true })"
-                                        title="Increase">
-                                        <svg class="w-2.5 h-2.5" viewBox="0 0 20 20" fill="currentColor"><path d="M5 12l5-5 5 5H5z"/></svg>
-                                    </button>
-                                    <button type="button" class="panel-stepper-btn"
-                                        @click="panel.config.autoScrapeIntervalHours = Math.max(0, Number(panel.config.autoScrapeIntervalHours || 0) - 0.5); panel.saveConfig({ silent: true })"
-                                        title="Decrease">
-                                        <svg class="w-2.5 h-2.5" viewBox="0 0 20 20" fill="currentColor"><path d="M5 8l5 5 5-5H5z"/></svg>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                    </div>
-                </div>
-
-                <!-- Display Settings -->
-                <div class="bg-surface-alt rounded-lg border border-gray-700 p-4">
-                    <h3 class="text-sm font-semibold text-white mb-3">Display Settings</h3>
-                    <label class="flex items-center gap-3 cursor-pointer group"
-                        @click="panel.config.defaultSpoilersOpen = !panel.config.defaultSpoilersOpen; panel.saveConfig({ silent: true })">
-                        <span class="relative inline-flex items-center justify-center w-5 h-5 rounded border transition"
-                            :class="panel.config.defaultSpoilersOpen ? 'bg-accent border-accent' : 'bg-surface border-gray-600 group-hover:border-gray-500'">
-                            <svg x-show="panel.config.defaultSpoilersOpen" class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
-                            </svg>
-                        </span>
-                        <span class="text-sm text-gray-300">Open spoilers by default</span>
-                    </label>
-                    <label class="flex items-center gap-3 cursor-pointer group mt-3"
-                        @click="panel.config.openLinksInNewTab = !panel.config.openLinksInNewTab; panel.saveConfig({ silent: true })">
-                        <span class="relative inline-flex items-center justify-center w-5 h-5 rounded border transition"
-                            :class="panel.config.openLinksInNewTab ? 'bg-accent border-accent' : 'bg-surface border-gray-600 group-hover:border-gray-500'">
-                            <svg x-show="panel.config.openLinksInNewTab" class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
-                            </svg>
-                        </span>
-                        <span class="text-sm text-gray-300">Open links in new tab</span>
-                    </label>
-                    <label class="flex items-center gap-3 cursor-pointer group mt-3"
-                        @click="showScraperStatusOnMain = !showScraperStatusOnMain; saveFilters()">
-                        <span class="relative inline-flex items-center justify-center w-5 h-5 rounded border transition"
-                            :class="showScraperStatusOnMain ? 'bg-accent border-accent' : 'bg-surface border-gray-600 group-hover:border-gray-500'">
-                            <svg x-show="showScraperStatusOnMain" class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
-                            </svg>
-                        </span>
-                        <span class="text-sm text-gray-300">Show updating scraper status on main page</span>
-                    </label>
-                    <label class="flex items-center gap-3 cursor-pointer group mt-3"
-                        @click="panel.config.showInfoConsoleLogs = !panel.config.showInfoConsoleLogs; panel.saveConfig({ silent: true })">
-                        <span class="relative inline-flex items-center justify-center w-5 h-5 rounded border transition"
-                            :class="panel.config.showInfoConsoleLogs ? 'bg-accent border-accent' : 'bg-surface border-gray-600 group-hover:border-gray-500'">
-                            <svg x-show="panel.config.showInfoConsoleLogs" class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
-                            </svg>
-                        </span>
-                        <span class="text-sm text-gray-300">Show INF logs in server console</span>
-                    </label>
-                </div>
-
-                <!-- Export starred mods as JSON (same data as card stars / favourites-first sort). -->
-                <div class="bg-surface-alt rounded-lg border border-gray-700 p-4">
-                    <h3 class="text-sm font-semibold text-white mb-3">Favourites</h3>
-                    <p class="text-xs text-gray-400 mb-3">
-                        Download a JSON file listing each starred mod’s title and forum thread URL (from data in this app). Order matches your star list.
-                    </p>
-                    <button type="button"
-                        @click="exportFavoritesJson()"
-                        class="rounded border border-gray-600 bg-surface-raised px-3 py-2 text-sm text-gray-200 transition hover:border-accent hover:text-white">
-                        Export favourites as JSON
-                    </button>
-                </div>
-
-                <!-- External Image Cache -->
-                <div class="bg-surface-alt rounded-lg border border-gray-700 p-4">
-                    <h3 class="text-sm font-semibold text-white mb-3">External Image Cache</h3>
-                    <p class="text-xs text-gray-400 mb-3">
-                        When enabled, external images shown in mod detail pages are downloaded and saved locally so they load faster on repeat visits.
-                    </p>
-                    <label class="flex items-center gap-3 cursor-pointer group mb-4"
-                        @click="panel.config.cacheExternalImages = !panel.config.cacheExternalImages; panel.saveConfig({ silent: true })">
-                        <span class="relative inline-flex items-center justify-center w-5 h-5 rounded border transition"
-                            :class="panel.config.cacheExternalImages ? 'bg-accent border-accent' : 'bg-surface border-gray-600 group-hover:border-gray-500'">
-                            <svg x-show="panel.config.cacheExternalImages" class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
-                            </svg>
-                        </span>
-                        <span class="text-sm text-gray-300">Cache external images locally</span>
-                    </label>
-                    <div class="flex items-center justify-between gap-4">
-                        <div class="text-xs text-gray-400" x-show="panel.extCache.loaded">
-                            <span class="text-gray-500">Cached: </span>
-                            <span class="text-gray-200" x-text="panel.extCache.fileCount"></span>
-                            <span class="text-gray-500"> files &mdash; </span>
-                            <span class="text-gray-200" x-text="panel.extCache.totalSizeFormatted"></span>
-                        </div>
-                        <div class="text-xs text-gray-500" x-show="!panel.extCache.loaded">Loading…</div>
-                        <button type="button"
-                            @click="panel.clearExtCache()"
-                            :disabled="panel.extCacheClearing || panel.extCache.fileCount === 0"
-                            class="shrink-0 rounded border border-gray-600 bg-surface-raised px-3 py-1.5 text-xs text-gray-300 transition hover:border-red-500 hover:text-red-400 disabled:opacity-40 disabled:cursor-not-allowed">
-                            <span x-show="!panel.extCacheClearing">Clear cache</span>
-                            <span x-show="panel.extCacheClearing">Clearing…</span>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Error -->
-                <div class="bg-red-900/30 border border-red-700 rounded-lg p-3"
-                    x-show="panel.status.job?.errorMessage" x-cloak>
-                    <p class="text-xs text-red-400" x-text="panel.status.job?.errorMessage"></p>
-                </div>
-
-            </div>
-        </div>
-    </div>
 
     <div x-show="hoverTip.show" x-cloak
         class="fixed z-[120] pointer-events-none max-w-[20rem] rounded bg-gray-900/95 px-2.5 py-1.5 text-[11px] font-medium text-white shadow-lg text-center"
@@ -1045,6 +661,9 @@
     <script src="/favorites.js"></script>
     <script src="/version-compare.js"></script>
     <script src="/index-page-filters.js"></script>
+    <script src="/control-panel-log.js"></script>
+    <script src="/control-panel.js"></script>
+    <script src="/index-page-download-log.js"></script>
     <script src="/index-page-manager.js"></script>
     <script src="/installs-panel.js"></script>
     <script src="/index-page-mod-summary.js"></script>
@@ -1058,6 +677,8 @@
     <div x-ref="setupPromptMount"></div>
 </body>
 </html>
+
+
 
 
 

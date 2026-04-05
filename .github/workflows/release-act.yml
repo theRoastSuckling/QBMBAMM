@@ -1,0 +1,25 @@
+# Mirrors the build steps from release.yml for local runs with nektos/act (no GitHub API / release upload).
+# Example: act workflow_dispatch -W .github/workflows/release-act.yml -j build
+name: Release (act)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.x'
+
+      - name: Build release zip
+        run: bash "bump or publish helpers/publish.sh"
+
+      - name: Show zip artifact
+        run: ls -la QBMBAMM-win-x64-v*.zip

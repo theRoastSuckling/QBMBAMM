@@ -32,6 +32,8 @@ function modsApp() {
         isInitialLoad: true,
         _searchTimer: null,
         clock: '',
+        // App version string fetched from /api/app-info on init (e.g. "v2.1.2").
+        appVersion: '',
         scraperState: 'idle',
         lastScraped: '',
         dataSize: '',

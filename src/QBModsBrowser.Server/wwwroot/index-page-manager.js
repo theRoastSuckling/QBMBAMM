@@ -125,11 +125,18 @@ function buildManagerMethods() {
             } catch (_) {}
         },
 
-        // Fetches app-level config (Discord IDs etc.) from the server and stores it for use by other methods.
+        // Fetches app-level config (Discord IDs etc.) and the build version from the server in parallel.
         async loadAppConfig() {
             try {
-                const res = await fetch('/api/app-config');
-                if (res.ok) this._discordConfig = await res.json();
+                const [configRes, infoRes] = await Promise.all([
+                    fetch('/api/app-config'),
+                    fetch('/api/app-info'),
+                ]);
+                if (configRes.ok) this._discordConfig = await configRes.json();
+                if (infoRes.ok) {
+                    const info = await infoRes.json();
+                    this.appVersion = info.version ?? '';
+                }
             } catch (_) {}
         },
 

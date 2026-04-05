@@ -8,8 +8,14 @@ obj/
 .vs/
 
 ## Data & logs (scraped content)
+# Track data/ JSON and mods/ for releases: publish.sh copies repo data/ into the zip then removes
+# only the paths below (browser state, local images, per-user config)
+#data/browser-profile/
+#data/external-images/
+#data/mod-profiles.json
+#data/manager-config.json
+#logs/
 data/
-logs/
 
 ## Diagnostic / temp
 diag/

@@ -14,6 +14,8 @@ using Serilog.Formatting.Compact;
 // [STAThread] is required for Windows Forms (NotifyIcon/ContextMenuStrip).
 internal static class Program
 {
+    // Fixed listen URL; single-instance check and tray icon both use this.
+    const string AppUrl = "http://localhost:5000";
     // When started via QBMBAMM.exe from bin/.../net9.0-windows, BaseDirectory is that folder; use the project
     // directory as content root so appsettings paths (e.g. ../../data) match `dotnet run`. Published layouts have no .csproj nearby, so we keep BaseDirectory.
     static string ResolveWebContentRoot()
@@ -44,16 +46,7 @@ internal static class Program
         if (!isPrimaryInstance)
         {
             // Another instance is already running — just (re)open the browser instead of nagging the user.
-            var secondInstanceUrl = "http://localhost:5000";
-            try
-            {
-                var cfg = new ConfigurationBuilder()
-                    .AddJsonFile(Path.Combine(AppContext.BaseDirectory, "appsettings.json"), optional: true)
-                    .Build();
-                secondInstanceUrl = cfg["Urls"]?.Split(';').FirstOrDefault()?.Trim() ?? secondInstanceUrl;
-            }
-            catch { }
-            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(secondInstanceUrl) { UseShellExecute = true });
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(AppUrl) { UseShellExecute = true });
             return;
         }
 
@@ -63,14 +56,18 @@ internal static class Program
             Args = args,
             ContentRootPath = contentRoot,
         });
+        builder.WebHost.UseUrls(AppUrl);
 
-        // Resolve paths relative to workspace root (two levels up from the server project)
+        // In dev, contentRoot is the project dir so data lives two levels up (repo root).
+        // In published builds, contentRoot equals AppContext.BaseDirectory so data is next to the exe.
+        bool isPublishedBuild = Path.GetFullPath(contentRoot).Equals(
+            Path.GetFullPath(AppContext.BaseDirectory), StringComparison.OrdinalIgnoreCase);
         string basePath = Path.GetFullPath(
-            builder.Configuration["DataPath"] ?? "../../data",
-            builder.Environment.ContentRootPath);
+            builder.Configuration["DataPath"] ?? (isPublishedBuild ? "data" : "../../data"),
+            contentRoot);
         string logPath = Path.GetFullPath(
-            builder.Configuration["LogPath"] ?? "../../logs",
-            builder.Environment.ContentRootPath);
+            builder.Configuration["LogPath"] ?? (isPublishedBuild ? "logs" : "../../logs"),
+            contentRoot);
 
         Directory.CreateDirectory(basePath);
         Directory.CreateDirectory(logPath);
@@ -152,12 +149,6 @@ internal static class Program
         if (File.Exists(managerConfigPath) && !managerConfig.IsUserConfigured)
             managerConfig.IsUserConfigured = true;
 
-        // Override from appsettings if present and config file didn't have a custom value
-        var appSettingsModsPath = builder.Configuration["ModsPath"];
-        if (!string.IsNullOrWhiteSpace(appSettingsModsPath)
-            && string.Equals(managerConfig.ModsPath, ManagerConfig.DefaultModsPath, StringComparison.Ordinal))
-            managerConfig.ModsPath = appSettingsModsPath;
-
         // Store resolved paths so controllers can find them without re-resolving relative to CWD.
         builder.Configuration["ResolvedDataPath"] = basePath;
         builder.Configuration["ResolvedLogPath"] = logPath;
@@ -224,11 +215,8 @@ internal static class Program
         // Fallback to index.html for SPA-like navigation
         app.MapFallbackToFile("index.html");
 
-        // Derive the URL the tray icon actions will open.
-        string appUrl = app.Configuration["Urls"]?.Split(';').FirstOrDefault()?.Trim() ?? "http://localhost:5000";
-
         // Build the system tray icon; it lives until the user clicks Exit.
-        using var tray = new TrayApp(appUrl);
+        using var tray = new TrayApp(AppUrl);
 
         // Initialize mod manager services in background, then warm version-checker cache.
         _ = Task.Run(async () =>
@@ -261,11 +249,10 @@ internal static class Program
         // Auto-open browser when server starts
         app.Lifetime.ApplicationStarted.Register(() =>
         {
-            string url = app.Urls.FirstOrDefault() ?? appUrl;
             try
             {
-                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(url) { UseShellExecute = true });
-                Log.Information("Opened browser at {Url}", url);
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(AppUrl) { UseShellExecute = true });
+                Log.Information("Opened browser at {Url}", AppUrl);
             }
             catch (Exception ex)
             {

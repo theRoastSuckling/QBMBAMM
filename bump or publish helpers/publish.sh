@@ -25,6 +25,7 @@ mkdir -p "$PUBLISH_DIR"
 dotnet publish "$PROJECT" \
   -c Release -r "$RUNTIME" --self-contained true \
   -o "$PUBLISH_DIR" \
+  -p:EnableWindowsTargeting=true \
   -p:PublishSingleFile=true \
   -p:PublishTrimmed=false \
   -p:IncludeNativeLibrariesForSelfExtract=true \

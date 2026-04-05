@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Publishes a self-contained win-x64 single-file exe, bundles data/, and zips the result.
-# Intended for Linux (e.g. GitHub Actions or `act`); requires GNU grep and zip on PATH.
+# Works on Linux (zip) and Windows/Git Bash (falls back to PowerShell Compress-Archive).
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(dirname "$SCRIPT_DIR")"
@@ -46,7 +46,15 @@ if [ -d "$REPO_ROOT/data" ]; then
 fi
 
 rm -f "$ZIP"
-(cd "$PUBLISH_DIR" && zip -qr "$ZIP" .)
+# Use zip when available (Linux/CI); fall back to PowerShell Compress-Archive on Windows/Git Bash.
+if command -v zip &>/dev/null; then
+  (cd "$PUBLISH_DIR" && zip -qr "$ZIP" .)
+else
+  WIN_SRC=$(cygpath -w "$PUBLISH_DIR")
+  WIN_ZIP=$(cygpath -w "$ZIP")
+  powershell.exe -NoProfile -Command \
+    "Compress-Archive -Path '$WIN_SRC\\*' -DestinationPath '$WIN_ZIP' -Force"
+fi
 
 echo ""
 echo "Done. Version: $TAG"

@@ -12,6 +12,8 @@ public class ScraperOrchestrator : BackgroundService
     private readonly ILogger _log;
     private readonly JsonDataStore _store;
     private readonly AssumedDownloadService _assumed;
+    private readonly ForumDataBundler _bundler;
+    private readonly ForumDataPublisher _publisher;
     private readonly object _lock = new();
 
     private CancellationTokenSource? _scrapeCts;
@@ -19,12 +21,18 @@ public class ScraperOrchestrator : BackgroundService
     private ScrapeJob _lastJob = new();
     private ScrapeResult? _lastResult;
 
-    // Accepts AssumedDownloadService so post-scrape resolution can populate the cache immediately.
-    public ScraperOrchestrator(JsonDataStore store, AssumedDownloadService assumed)
+    // Accepts bundler and publisher so a completed scrape automatically exports and pushes data.
+    public ScraperOrchestrator(
+        JsonDataStore store,
+        AssumedDownloadService assumed,
+        ForumDataBundler bundler,
+        ForumDataPublisher publisher)
     {
         _log = Log.Logger.ForContext<ScraperOrchestrator>();
         _store = store;
         _assumed = assumed;
+        _bundler = bundler;
+        _publisher = publisher;
     }
 
     public ScrapeJob CurrentJob
@@ -96,6 +104,24 @@ public class ScraperOrchestrator : BackgroundService
                     _lastJob = engine.CurrentJob;
                     _currentEngine = null;
                 }
+
+                // Bundle and publish only when opted in; fire-and-forget so it never blocks the scrape loop.
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        var postConfig = await _store.LoadConfig();
+                        if (!postConfig.AutoPublishAfterScrape)
+                            return;
+
+                        var bundle = await _bundler.CreateBundleAsync(_store, _assumed);
+                        await _publisher.PublishAsync(bundle);
+                    }
+                    catch (Exception pubEx)
+                    {
+                        _log.Warning(pubEx, "Post-scrape forum data publish failed");
+                    }
+                });
             }
             catch (Exception ex)
             {

@@ -389,6 +389,26 @@
                             </span>
                             <span class="text-sm text-gray-300">Show updating scraper status on main page</span>
                         </label>
+                        <label class="flex items-center gap-3 cursor-pointer group mt-3"
+                            @click="panel.config.autoPublishAfterScrape = !panel.config.autoPublishAfterScrape; panel.saveConfig({ silent: true })">
+                            <span class="relative inline-flex items-center justify-center w-5 h-5 rounded border transition"
+                                :class="panel.config.autoPublishAfterScrape ? 'bg-accent border-accent' : 'bg-surface border-gray-600 group-hover:border-gray-500'">
+                                <svg x-show="panel.config.autoPublishAfterScrape" class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+                                </svg>
+                            </span>
+                            <span class="text-sm text-gray-300">Publish scraped data to QBForumModData after scrape</span>
+                        </label>
+                        <label class="flex items-center gap-3 cursor-pointer group mt-3"
+                            @click="panel.config.disableRemoteForumDataFetch = !panel.config.disableRemoteForumDataFetch; panel.saveConfig({ silent: true })">
+                            <span class="relative inline-flex items-center justify-center w-5 h-5 rounded border transition"
+                                :class="panel.config.disableRemoteForumDataFetch ? 'bg-accent border-accent' : 'bg-surface border-gray-600 group-hover:border-gray-500'">
+                                <svg x-show="panel.config.disableRemoteForumDataFetch" class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+                                </svg>
+                            </span>
+                            <span class="text-sm text-gray-300">Do not fetch remote forum mod data</span>
+                        </label>
                     </div>
 
                     <!-- Export starred mods as JSON (same data as card stars / favourites-first sort). -->

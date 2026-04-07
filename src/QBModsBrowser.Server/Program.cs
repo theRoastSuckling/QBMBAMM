@@ -124,6 +124,12 @@ internal static class Program
             }
         }
 
+        // Resolve a relative LocalRepoPath against the directory that contains app-config.json.
+        var repoPath = appConfig.ForumDataRepo.LocalRepoPath;
+        if (!string.IsNullOrWhiteSpace(repoPath) && !Path.IsPathRooted(repoPath))
+            appConfig.ForumDataRepo.LocalRepoPath =
+                Path.GetFullPath(repoPath, Path.GetDirectoryName(appConfigPath)!);
+
         // Load or create manager config
         var managerConfigPath = Path.Combine(basePath, "manager-config.json");
         var managerConfig = new ManagerConfig();
@@ -157,7 +163,13 @@ internal static class Program
 
         // Services
         builder.Services.AddSingleton(new JsonDataStore(Log.Logger, basePath));
-        builder.Services.AddSingleton<ScraperOrchestrator>();
+        builder.Services.AddSingleton(new ForumDataBundler(Log.Logger));
+        builder.Services.AddSingleton(new ForumDataPublisher(Log.Logger, appConfig.ForumDataRepo));
+        builder.Services.AddSingleton(sp => new ScraperOrchestrator(
+            sp.GetRequiredService<JsonDataStore>(),
+            sp.GetRequiredService<AssumedDownloadService>(),
+            sp.GetRequiredService<ForumDataBundler>(),
+            sp.GetRequiredService<ForumDataPublisher>()));
         builder.Services.AddHostedService(sp => sp.GetRequiredService<ScraperOrchestrator>());
         builder.Services.AddSingleton(appConfig);
         builder.Services.AddSingleton(managerConfig);
@@ -166,6 +178,14 @@ internal static class Program
         builder.Services.AddSingleton(sp => new VersionCheckerService(Log.Logger, sp.GetRequiredService<LocalModService>()));
         builder.Services.AddSingleton(new ModInstallationService(Log.Logger));
         builder.Services.AddSingleton(new AssumedDownloadService(Log.Logger, basePath));
+        builder.Services.AddSingleton(sp => new ForumDataFetchService(
+            Log.Logger,
+            appConfig.ForumDataRepo,
+            basePath,
+            sp.GetRequiredService<JsonDataStore>(),
+            sp.GetRequiredService<ForumDataBundler>(),
+            sp.GetRequiredService<AssumedDownloadService>()));
+        builder.Services.AddHostedService(sp => sp.GetRequiredService<ForumDataFetchService>());
         builder.Services.AddSingleton(sp => new DownloadManager(
             Log.Logger,
             () => managerConfig.ModsPath,

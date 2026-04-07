@@ -17,14 +17,16 @@ public class ModsController : ControllerBase
     private readonly ModMatchingService _matching;
     private readonly AssumedDownloadService _assumed;
     private readonly DependencyService _deps;
+    private readonly ForumDataFetchService _forumFetch;
 
-    // Creates the controller with datastore, matching, assumed-download, and dependency services.
-    public ModsController(JsonDataStore store, ModMatchingService matching, AssumedDownloadService assumed, DependencyService deps)
+    // Creates the controller with datastore, matching, assumed-download, dependency, and fetch services.
+    public ModsController(JsonDataStore store, ModMatchingService matching, AssumedDownloadService assumed, DependencyService deps, ForumDataFetchService forumFetch)
     {
         _store = store;
         _matching = matching;
         _assumed = assumed;
         _deps = deps;
+        _forumFetch = forumFetch;
     }
 
     // Returns paged mod summaries with filters, sorting, and manager enrichment fields.
@@ -48,6 +50,9 @@ public class ModsController : ControllerBase
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 24)
     {
+        // Trigger a remote data freshness check on each page load without blocking the response.
+        _ = Task.Run(() => _forumFetch.EnsureDataFreshAsync());
+
         var mods = await _store.LoadIndex();
         await _matching.PrepareEnrichmentAsync();
 

@@ -198,6 +198,14 @@ public class ScraperConfig
 
     // When true, INF-level entries are printed to the server console; false suppresses them (default).
     public bool ShowInfoConsoleLogs { get; set; } = false;
+
+    // When true, bundles scraped data and commits+pushes it to the configured QBForumModData repo after each scrape.
+    // Leave off for users who scrape locally and don't have repo write access.
+    public bool AutoPublishAfterScrape { get; set; } = false;
+
+    // When true, skips the remote forum data bundle fetch on startup and page load.
+    // Opt in if you maintain your own local scrape and don't want it overwritten.
+    public bool DisableRemoteForumDataFetch { get; set; } = false;
 }
 
 // Represents aggregate counts and storage usage for the scraped dataset.

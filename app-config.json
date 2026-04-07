@@ -2,5 +2,10 @@
   "Discord": {
     "ServerId": "187635036525166592",
     "BugReportThreadId": "1489644265599537262"
+  },
+  "ForumDataRepo": {
+    "LocalRepoPath": "../QBForumModData",
+    "RemoteRawUrl": "https://github.com/theRoastSuckling/QBForumModData/raw/refs/heads/main/forum-data-bundle.json",
+    "FetchIntervalHours": 6
   }
 }

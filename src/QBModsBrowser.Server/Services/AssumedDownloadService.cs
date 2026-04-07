@@ -184,6 +184,31 @@ public partial class AssumedDownloadService
             && cached.Candidates.Count > 0;
     }
 
+    // Returns all cached candidates keyed by topic id, used when bundling data for export.
+    public Dictionary<int, List<AssumedDownloadCandidate>> GetAllCandidates()
+    {
+        return _cache
+            .Where(kvp => kvp.Value.Candidates.Count > 0)
+            .ToDictionary(kvp => kvp.Key, kvp => kvp.Value.Candidates);
+    }
+
+    // Populates the in-memory cache from an imported bundle, using an empty fingerprint so that
+    // a real ResolveAsync call for the same topic will still overwrite with freshly resolved data.
+    public void ImportCandidates(Dictionary<int, List<AssumedDownloadCandidate>> data)
+    {
+        foreach (var (topicId, candidates) in data)
+        {
+            _cache[topicId] = new CachedResult
+            {
+                Candidates = candidates,
+                ResolvedAt = DateTime.UtcNow,
+                Schema = AssumedDownloadCacheSchema,
+                LinkFingerprint = ""
+            };
+        }
+        _log.Debug("Imported {Count} assumed-download entries from bundle", data.Count);
+    }
+
     /// <summary>Stable fingerprint of input links so cache invalidates when spoiler filtering or link list changes.</summary>
     // Builds deterministic fingerprint so cache invalidates when link sets change.
     private static string FingerprintLinks(IReadOnlyList<LinkRef> links)

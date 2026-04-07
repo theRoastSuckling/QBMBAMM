@@ -34,4 +34,4 @@ jobs:
           tag_name: ${{ github.ref_name }}
           name: ${{ github.ref_name }}
           body: ${{ steps.meta.outputs.commit_title }}
-          files: QBMBAMM-win-x64-v*.zip
+          files: QBMBAMM-Windows.zip

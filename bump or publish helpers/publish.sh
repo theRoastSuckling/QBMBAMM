@@ -16,7 +16,8 @@ VERSION=$(grep -oP '(?<=<Version>)\d+\.\d+\.\d+(?=</Version>)' "$PROJECT")
 TAG="v$VERSION"
 
 PUBLISH_DIR="$REPO_ROOT/publish/$RUNTIME/$TAG"
-ZIP="$REPO_ROOT/QBMBAMM-win-x64-$TAG.zip"
+# Fixed name so the GitHub /releases/latest/download/ URL never changes.
+ZIP="$REPO_ROOT/QBMBAMM-Windows.zip"
 
 echo "Publishing $TAG..."
 mkdir -p "$PUBLISH_DIR"

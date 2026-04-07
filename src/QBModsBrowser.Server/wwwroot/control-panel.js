@@ -6,7 +6,7 @@ function createPanelState() {
         // Expands the forum scrape accordion in the control panel drawer.
         scrapeSectionExpanded: false,
         status: { state: 'idle', isScraping: false, job: {}, stats: {} },
-        config: { autoScrapeIntervalHours: 0, delayBetweenPagesMs: 1500, delayBetweenTopicsMs: 1500, defaultSpoilersOpen: false, openLinksInNewTab: true, cacheExternalImages: true },
+        config: { autoScrapeIntervalHours: 0, delayBetweenPagesMs: 1500, delayBetweenTopicsMs: 1500, defaultSpoilersOpen: false, openLinksInNewTab: true, cacheExternalImages: false },
         scope: 'new',
         // Per-board toggles sent with board-based scopes (new/all/pages).
         boards: { main: true, lesser: true, libraries: true },
@@ -60,11 +60,11 @@ function createPanelState() {
                     delayBetweenTopicsMs: 1500,
                     defaultSpoilersOpen: false,
                     openLinksInNewTab: true,
-                    cacheExternalImages: true,
+                    cacheExternalImages: false,
                     ...cfg
                 };
                 this.config.openLinksInNewTab = (cfg.openLinksInNewTab ?? cfg.openModLinksInNewTab) !== false;
-                this.config.cacheExternalImages = cfg.cacheExternalImages !== false;
+                this.config.cacheExternalImages = cfg.cacheExternalImages === true;
             } catch (_) {}
         },
 

@@ -4,7 +4,9 @@
   "description": "Local desktop-friendly web app for browsing Starsector mods scraped from the Fractal Softworks forum.",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build:css": "tailwindcss -i ./src/QBModsBrowser.Server/wwwroot/tailwind-input.css -o ./src/QBModsBrowser.Server/wwwroot/tailwind.css --minify",
+    "watch:css": "tailwindcss -i ./src/QBModsBrowser.Server/wwwroot/tailwind-input.css -o ./src/QBModsBrowser.Server/wwwroot/tailwind.css --watch"
   },
   "repository": {
     "type": "git",
@@ -16,5 +18,8 @@
   "bugs": {
     "url": "https://github.com/hambazumba/QBStarsectorModsBrowser/issues"
   },
-  "homepage": "https://github.com/hambazumba/QBStarsectorModsBrowser#readme"
+  "homepage": "https://github.com/hambazumba/QBStarsectorModsBrowser#readme",
+  "devDependencies": {
+    "tailwindcss": "^3.4.19"
+  }
 }

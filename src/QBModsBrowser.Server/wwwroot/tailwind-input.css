@@ -1,0 +1,4 @@
+/* Entry point for the Tailwind CLI build. Output goes to tailwind.css (gitignored). */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;

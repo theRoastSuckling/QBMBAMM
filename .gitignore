@@ -40,3 +40,8 @@ Thumbs.db
 
 ## Logs
 *.log
+
+## Generated assets
+# Built by `npm run build:css` / MSBuild BuildTailwindCSS target — not committed.
+src/QBModsBrowser.Server/wwwroot/tailwind.css
+node_modules/

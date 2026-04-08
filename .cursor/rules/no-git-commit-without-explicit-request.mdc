@@ -1,0 +1,6 @@
+---
+description: Do not git commit unless the user explicitly asks to commit.
+alwaysApply: true
+---
+
+Never run `git commit` unless the user clearly asked for a commit.

@@ -11,6 +11,9 @@ $runtime = "win-x64"
 $publishRuntimeRoot = Join-Path $publishRoot $runtime
 $sourceDataPath = Join-Path $repoRoot "data"
 
+# Fixed zip name so the GitHub /releases/latest/download/ URL never changes.
+$zipPath = Join-Path $repoRoot "QBMBAMM-Windows.zip"
+
 # --- Read current <Version> from the .csproj (no bump; use bump-version.ps1 first if needed) ---
 if (-not (Test-Path -LiteralPath $projectPath)) {
     throw "Project file not found: $projectPath"
@@ -22,9 +25,7 @@ if (-not $versionMatch.Success) {
 }
 $newVersionBare = $versionMatch.Groups[1].Value
 $newVersion = "v$newVersionBare"
-# Zip name includes version so each release produces a distinct, identifiable archive.
 $publishDir = Join-Path $publishRuntimeRoot $newVersion
-$zipPath = Join-Path $repoRoot "QBMBAMM-win-x64-$newVersion.zip"
 
 Write-Host "Publishing single-file executable..."
 
@@ -37,6 +38,9 @@ if ($running) {
 
 New-Item -ItemType Directory -Path $publishDir -Force | Out-Null
 
+# PlaywrightPlatform must be set explicitly: the Playwright MSBuild target falls back to
+# host-OS detection when building cross-platform (e.g. win-x64 on Linux CI), which causes
+# it to bundle the wrong node binary. Force win-x64 so node.exe is always included.
 dotnet publish $projectPath `
     -c Release `
     -r $runtime `
@@ -45,7 +49,8 @@ dotnet publish $projectPath `
     /p:PublishSingleFile=true `
     /p:PublishTrimmed=false `
     /p:IncludeNativeLibrariesForSelfExtract=true `
-    /p:EnableCompressionInSingleFile=true
+    /p:EnableCompressionInSingleFile=false `
+    /p:PlaywrightPlatform=win-x64
 
 if ($LASTEXITCODE -ne 0) {
     throw "dotnet publish failed with exit code $LASTEXITCODE."

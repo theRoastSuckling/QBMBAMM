@@ -23,6 +23,9 @@ echo "Publishing $TAG..."
 mkdir -p "$PUBLISH_DIR"
 
 # Use -p: (not /p:) so bash does not treat MSBuild switches as paths.
+# PlaywrightPlatform must be set explicitly: the Playwright MSBuild target falls back to
+# host-OS detection when building a cross-platform publish (e.g. win-x64 on a Linux CI runner),
+# which causes it to bundle the Linux node binary instead of node.exe for Windows.
 dotnet publish "$PROJECT" \
   -c Release -r "$RUNTIME" --self-contained true \
   -o "$PUBLISH_DIR" \
@@ -30,7 +33,8 @@ dotnet publish "$PROJECT" \
   -p:PublishSingleFile=true \
   -p:PublishTrimmed=false \
   -p:IncludeNativeLibrariesForSelfExtract=true \
-  -p:EnableCompressionInSingleFile=false
+  -p:EnableCompressionInSingleFile=false \
+  -p:PlaywrightPlatform=win-x64
 
 # Copy app-config.json next to the exe so published builds resolve it from BaseDirectory.
 [ -f "$REPO_ROOT/app-config.json" ] && cp "$REPO_ROOT/app-config.json" "$PUBLISH_DIR/"

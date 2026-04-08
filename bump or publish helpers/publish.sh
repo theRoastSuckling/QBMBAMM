@@ -30,7 +30,7 @@ dotnet publish "$PROJECT" \
   -p:PublishSingleFile=true \
   -p:PublishTrimmed=false \
   -p:IncludeNativeLibrariesForSelfExtract=true \
-  -p:EnableCompressionInSingleFile=true
+  -p:EnableCompressionInSingleFile=false
 
 # Copy app-config.json next to the exe so published builds resolve it from BaseDirectory.
 [ -f "$REPO_ROOT/app-config.json" ] && cp "$REPO_ROOT/app-config.json" "$PUBLISH_DIR/"

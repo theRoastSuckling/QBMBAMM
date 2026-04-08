@@ -90,7 +90,7 @@
 
 @media (min-width: 1100px) {
     .dlk-source-grid {
-        grid-template-columns: repeat(7, minmax(0, 1fr));
+        grid-template-columns: repeat(8, minmax(0, 1fr));
     }
 }
 
@@ -132,6 +132,18 @@
     box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
 }
 
+/* Warn chip — data present but incomplete (e.g. some deps missing) */
+.dlk-source-warn .dlk-source-link {
+    color: rgb(253, 224, 71);
+    background: rgba(234, 179, 8, 0.1);
+    border: 1px solid rgba(234, 179, 8, 0.3);
+}
+
+.dlk-source-warn .dlk-source-dot {
+    background: rgb(253, 224, 71);
+    box-shadow: 0 0 0 2px rgba(234, 179, 8, 0.2);
+}
+
 .dlk-source-missing .dlk-source-link {
     color: rgb(107, 114, 128);
     background: rgba(75, 85, 99, 0.15);
@@ -167,6 +179,12 @@
     border: 1px solid rgba(52, 211, 153, 0.2);
 }
 
+/* Warn card — data present but some entries are incomplete or unresolved */
+.dlk-card-warn {
+    background: rgba(245, 158, 11, 0.04);
+    border: 1px solid rgba(245, 158, 11, 0.25);
+}
+
 .dlk-card-absent {
     background: rgba(75, 85, 99, 0.08);
     border: 1px dashed rgba(75, 85, 99, 0.4);
@@ -194,6 +212,12 @@
 .dlk-badge-ok {
     color: rgb(167, 243, 208);
     background: rgba(52, 211, 153, 0.15);
+}
+
+/* Warn badge — some items unresolved */
+.dlk-badge-warn {
+    color: rgb(253, 224, 71);
+    background: rgba(234, 179, 8, 0.15);
 }
 
 .dlk-badge-none {
@@ -410,4 +434,21 @@
 .dlk-conf-low {
     color: rgb(252, 165, 165);
     background: rgba(239, 68, 68, 0.1);
+}
+
+/* Dependency section rows — one row per declared dependency */
+.dlk-dep-row {
+    padding: 0.35rem 0.5rem;
+    border-radius: 0.3rem;
+    border: 1px solid;
+}
+
+.dlk-dep-row-ok {
+    background: rgba(52, 211, 153, 0.05);
+    border-color: rgba(52, 211, 153, 0.15);
+}
+
+.dlk-dep-row-missing {
+    background: rgba(245, 158, 11, 0.06);
+    border-color: rgba(245, 158, 11, 0.22);
 }

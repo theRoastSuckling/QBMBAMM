@@ -102,6 +102,16 @@
                                         <span class="dlk-source-dot"></span>
                                     </a>
                                 </div>
+                                <div class="dlk-source-chip"
+                                     :class="$store.dlk.data.dependencies.exists
+                                         ? ($store.dlk.data.dependencies.data.some(d => !d.isInstalled) ? 'dlk-source-warn' : 'dlk-source-active')
+                                         : 'dlk-source-missing'">
+                                    <a href="#dlk-card-dependencies" class="dlk-source-link" @click.prevent="$store.dlk.focusCard('dlk-card-dependencies')">
+                                        <iconify-icon icon="heroicons:cube" width="14" height="14"></iconify-icon>
+                                        <span>Dependencies</span>
+                                        <span class="dlk-source-dot"></span>
+                                    </a>
+                                </div>
                             </div>
                         </div>
 
@@ -118,11 +128,11 @@
                                 <div class="dlk-card-connection">
                                     <iconify-icon icon="heroicons:arrow-right" width="12" height="12"></iconify-icon>
                                     <span>
-                                        <template x-if="$store.dlk.data.forumScrape.connectionMethod === 'Direct topicId field in scraped data'">
+                                        <template x-if="$store.dlk.data.forumScrape.connectionMethodKey === 'direct-topic-id'">
                                             <span>Direct <span class="dlk-inline-code">topicId</span> field in scraped data</span>
                                         </template>
-                                        <span x-show="$store.dlk.data.forumScrape.connectionMethod !== 'Direct topicId field in scraped data'"
-                                            x-text="$store.dlk.data.forumScrape.connectionMethod"></span>
+                                        <span x-show="$store.dlk.data.forumScrape.connectionMethodKey !== 'direct-topic-id'"
+                                            x-text="$store.dlk.data.forumScrape.connectionMethodKey"></span>
                                     </span>
                                 </div>
                                 <div class="dlk-card-storage">
@@ -173,11 +183,11 @@
                                 <div class="dlk-card-connection">
                                     <iconify-icon icon="heroicons:arrow-right" width="12" height="12"></iconify-icon>
                                     <span>
-                                        <template x-if="$store.dlk.data.modRepo.connectionMethod === 'Urls.Forum parsed for ?topic= parameter'">
+                                        <template x-if="$store.dlk.data.modRepo.connectionMethodKey === 'urls-forum-param'">
                                             <span><span class="dlk-inline-code">Urls.Forum</span> parsed for <span class="dlk-inline-code">?topic=</span> parameter</span>
                                         </template>
-                                        <span x-show="$store.dlk.data.modRepo.connectionMethod !== 'Urls.Forum parsed for ?topic= parameter'"
-                                            x-text="$store.dlk.data.modRepo.connectionMethod"></span>
+                                        <span x-show="$store.dlk.data.modRepo.connectionMethodKey !== 'urls-forum-param'"
+                                            x-text="$store.dlk.data.modRepo.connectionMethodKey"></span>
                                     </span>
                                 </div>
                                 <div class="dlk-card-storage">
@@ -298,11 +308,11 @@
                                 <div class="dlk-card-connection">
                                     <iconify-icon icon="heroicons:arrow-right" width="12" height="12"></iconify-icon>
                                     <span>
-                                        <template x-if="$store.dlk.data.versionChecker.connectionMethod === 'Embedded in local mod folder; modThreadId links back to topic'">
+                                        <template x-if="$store.dlk.data.versionChecker.connectionMethodKey === 'embedded-mod-folder'">
                                             <span>Embedded in local mod folder; <span class="dlk-inline-code">modThreadId</span> links back to <span class="dlk-inline-code">topic</span></span>
                                         </template>
-                                        <span x-show="$store.dlk.data.versionChecker.connectionMethod !== 'Embedded in local mod folder; modThreadId links back to topic'"
-                                            x-text="$store.dlk.data.versionChecker.connectionMethod"></span>
+                                        <span x-show="$store.dlk.data.versionChecker.connectionMethodKey !== 'embedded-mod-folder'"
+                                            x-text="$store.dlk.data.versionChecker.connectionMethodKey"></span>
                                     </span>
                                 </div>
                                 <div class="dlk-card-storage">
@@ -343,11 +353,11 @@
                                 <div class="dlk-card-connection">
                                     <iconify-icon icon="heroicons:arrow-right" width="12" height="12"></iconify-icon>
                                     <span>
-                                        <template x-if="$store.dlk.data.topicArchiveMap.connectionMethod === 'Key is topicId; modIds[] link to local mod folders'">
-                                            <span>Key is <span class="dlk-inline-code">topicId</span>; <span class="dlk-inline-code">modIds[]</span> link to local mod folders</span>
+                                        <template x-if="$store.dlk.data.topicArchiveMap.connectionMethodKey === 'topic-archive-map'">
+                                            <span>Key is <span class="dlk-inline-code">topicId</span>; <span class="dlk-inline-code">modIds[]</span> link to local mod folders. Filled when a mod archive is downloaded and installed through QBMBAMM</span>
                                         </template>
-                                        <span x-show="$store.dlk.data.topicArchiveMap.connectionMethod !== 'Key is topicId; modIds[] link to local mod folders'"
-                                            x-text="$store.dlk.data.topicArchiveMap.connectionMethod"></span>
+                                        <span x-show="$store.dlk.data.topicArchiveMap.connectionMethodKey !== 'topic-archive-map'"
+                                            x-text="$store.dlk.data.topicArchiveMap.connectionMethodKey"></span>
                                     </span>
                                 </div>
                                 <div class="dlk-card-storage">
@@ -393,11 +403,11 @@
                                 <div class="dlk-card-connection">
                                     <iconify-icon icon="heroicons:arrow-right" width="12" height="12"></iconify-icon>
                                     <span>
-                                        <template x-if="$store.dlk.data.modMatches.connectionMethod === 'Auto-saved when an installed local mod is matched to a forum topic while browsing. Independent of QBMBAMM download history.'">
-                                            <span>Auto-saved when an installed local mod is matched to a forum topic while browsing. Independent of QBMBAMM download history.</span>
+                                        <template x-if="$store.dlk.data.modMatches.connectionMethodKey === 'persisted-mod-matches'">
+                                            <span>Auto-saved when an installed local mod is matched to a forum topic while browsing. Independent of QBMBAMM download history</span>
                                         </template>
-                                        <span x-show="$store.dlk.data.modMatches.connectionMethod !== 'Auto-saved when an installed local mod is matched to a forum topic while browsing. Independent of QBMBAMM download history.'"
-                                            x-text="$store.dlk.data.modMatches.connectionMethod"></span>
+                                        <span x-show="$store.dlk.data.modMatches.connectionMethodKey !== 'persisted-mod-matches'"
+                                            x-text="$store.dlk.data.modMatches.connectionMethodKey"></span>
                                     </span>
                                 </div>
                                 <div class="dlk-card-storage">
@@ -430,11 +440,11 @@
                                 <div class="dlk-card-connection">
                                     <iconify-icon icon="heroicons:arrow-right" width="12" height="12"></iconify-icon>
                                     <span>
-                                        <template x-if="$store.dlk.data.assumedDownloads.connectionMethod === 'Resolved from forum post links; key is topicId'">
+                                        <template x-if="$store.dlk.data.assumedDownloads.connectionMethodKey === 'resolved-post-links'">
                                             <span>Resolved from forum post links; key is <span class="dlk-inline-code">topicId</span></span>
                                         </template>
-                                        <span x-show="$store.dlk.data.assumedDownloads.connectionMethod !== 'Resolved from forum post links; key is topicId'"
-                                            x-text="$store.dlk.data.assumedDownloads.connectionMethod"></span>
+                                        <span x-show="$store.dlk.data.assumedDownloads.connectionMethodKey !== 'resolved-post-links'"
+                                            x-text="$store.dlk.data.assumedDownloads.connectionMethodKey"></span>
                                     </span>
                                 </div>
                                 <div class="dlk-card-storage">
@@ -468,6 +478,103 @@
                                     class="mt-2 rounded border border-emerald-500/40 bg-emerald-900/20 px-2.5 py-2 text-[11px] text-emerald-300">
                                     Assumed download links are not needed because a direct download link is already available from Version Checker or ModRepo.
                                 </div>
+                            </div>
+
+                            <!-- 8. Dependencies -->
+                            <div id="dlk-card-dependencies" class="dlk-card"
+                                 :class="$store.dlk.data.dependencies.exists
+                                     ? ($store.dlk.data.dependencies.data.some(d => !d.isInstalled) ? 'dlk-card-warn' : 'dlk-card-present')
+                                     : 'dlk-card-absent'">
+                                <div class="dlk-card-header">
+                                    <iconify-icon icon="heroicons:cube" width="16" height="16"></iconify-icon>
+                                    <span class="font-semibold">Dependencies</span>
+                                    <span class="dlk-status-badge"
+                                          :class="!$store.dlk.data.dependencies.exists
+                                              ? 'dlk-badge-none'
+                                              : ($store.dlk.data.dependencies.data.some(d => !d.isInstalled) ? 'dlk-badge-warn' : 'dlk-badge-ok')"
+                                          x-text="!$store.dlk.data.dependencies.exists
+                                              ? 'None declared'
+                                              : ($store.dlk.data.dependencies.data.length + ' dep' + ($store.dlk.data.dependencies.data.length !== 1 ? 's' : '')
+                                                 + ($store.dlk.data.dependencies.data.some(d => !d.isInstalled)
+                                                    ? ' (' + $store.dlk.data.dependencies.data.filter(d => !d.isInstalled).length + ' missing)'
+                                                    : ' \u2713 all installed'))">
+                                    </span>
+                                </div>
+                                <div class="dlk-card-connection">
+                                    <iconify-icon icon="heroicons:arrow-right" width="12" height="12"></iconify-icon>
+                                    <span>
+                                        <template x-if="$store.dlk.data.dependencies.connectionMethodKey === 'mod-info-deps'">
+                                            <span><span class="dlk-inline-code">dependencies[]</span> in each matched mod's <span class="dlk-inline-code">mod_info.json</span>; <span class="dlk-inline-code">id</span> resolved against all installed local mods</span>
+                                        </template>
+                                        <span x-show="$store.dlk.data.dependencies.connectionMethodKey !== 'mod-info-deps'"
+                                              x-text="$store.dlk.data.dependencies.connectionMethodKey"></span>
+                                    </span>
+                                </div>
+                                <div class="dlk-card-storage">
+                                    <iconify-icon icon="heroicons:server" width="12" height="12" class="shrink-0 mt-0.5"></iconify-icon>
+                                    <div class="dlk-path" x-text="$store.dlk.data.dependencies.storagePath"></div>
+                                </div>
+                                <template x-if="$store.dlk.data.dependencies.exists">
+                                    <div class="dlk-card-data space-y-1">
+                                        <template x-for="dep in $store.dlk.data.dependencies.data" :key="dep.id">
+                                            <div class="dlk-dep-row" :class="dep.isInstalled ? 'dlk-dep-row-ok' : 'dlk-dep-row-missing'">
+                                                <!-- Row 1: name (left) — topic (center) — status (right); no hover styling on links -->
+                                                <div class="flex w-full min-w-0 items-center gap-2">
+                                                    <div class="flex min-w-0 flex-1 items-center gap-1.5">
+                                                        <iconify-icon :icon="dep.isInstalled ? 'heroicons:check-circle' : 'heroicons:exclamation-triangle'"
+                                                                      width="12" height="12"
+                                                                      :class="dep.isInstalled ? 'text-emerald-400 shrink-0' : 'text-amber-400 shrink-0'">
+                                                        </iconify-icon>
+                                                        <template x-if="dep.matchedTopicId">
+                                                            <a :href="'mod.html?id=' + dep.matchedTopicId"
+                                                               class="font-mono text-[11px] font-semibold truncate"
+                                                               :class="dep.isInstalled ? 'text-indigo-300' : 'text-amber-300'"
+                                                               x-text="dep.name || dep.id"></a>
+                                                        </template>
+                                                        <template x-if="!dep.matchedTopicId">
+                                                            <span class="truncate font-mono text-[11px] font-semibold"
+                                                                  :class="dep.isInstalled ? 'text-white' : 'text-amber-200'"
+                                                                  x-text="dep.name || dep.id"></span>
+                                                        </template>
+                                                        <template x-if="dep.name && dep.id && dep.name !== dep.id">
+                                                            <span class="dlk-inline-code shrink-0 text-[9px]" x-text="dep.id"></span>
+                                                        </template>
+                                                    </div>
+                                                    <div class="flex shrink-0 items-center justify-center px-1">
+                                                        <template x-if="dep.matchedTopicId">
+                                                            <a :href="'mod.html?id=' + dep.matchedTopicId"
+                                                               class="flex items-center gap-0.5 whitespace-nowrap font-mono text-[10px] text-indigo-300">
+                                                                <iconify-icon icon="heroicons:link" width="10" height="10"></iconify-icon>
+                                                                <span x-text="dep.matchedTopicId"></span>
+                                                            </a>
+                                                        </template>
+                                                        <span class="whitespace-nowrap text-[10px] text-gray-600 italic" x-show="!dep.matchedTopicId">no topic - no match found</span>
+                                                    </div>
+                                                    <div class="flex min-w-0 flex-1 justify-end">
+                                                        <span class="text-[10px] font-semibold whitespace-nowrap"
+                                                              :class="dep.isInstalled ? 'text-emerald-400' : 'text-amber-400'"
+                                                              x-text="dep.isInstalled ? 'Installed' : 'Missing'"></span>
+                                                    </div>
+                                                </div>
+                                                <div class="mt-0.5 flex flex-wrap items-center gap-3 pl-[18px]">
+                                                    <span class="text-[10px] text-gray-400" x-show="dep.requiredVersion">
+                                                        requires <span class="font-mono text-gray-300" x-text="dep.requiredVersion"></span>
+                                                    </span>
+                                                    <span class="text-[10px] text-emerald-400" x-show="dep.isInstalled && dep.installedVersion">
+                                                        installed <span class="font-mono" x-text="dep.installedVersion"></span>
+                                                    </span>
+                                                    <span class="text-[10px] text-gray-500" x-show="dep.declaredBy && dep.declaredBy.length > 0">
+                                                        declared by
+                                                        <template x-for="src in dep.declaredBy" :key="src">
+                                                            <span class="dlk-inline-code text-[9px]" x-text="src"></span>
+                                                        </template>
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </template>
+                                <div x-show="!$store.dlk.data.dependencies.exists" class="dlk-card-empty">No dependencies declared by matched local mods</div>
                             </div>
 
                         </div><!-- end cards grid -->

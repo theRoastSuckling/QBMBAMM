@@ -15,6 +15,14 @@
 </head>
 <body class="bg-surface text-gray-300 min-h-screen" x-data="modDetail()" @keydown.window="handleDetailKeydown($event)">
 
+    <!-- Shared mouse-following hover tip; matches the same pattern used in index.html -->
+    <div x-show="hoverTip.show" x-cloak
+        class="fixed z-[120] pointer-events-none max-w-[20rem] rounded bg-gray-900/95 px-2.5 py-1.5 text-[11px] font-medium text-white shadow-lg text-center"
+        :style="'left:' + hoverTip.x + 'px; top:' + hoverTip.y + 'px; transform: translate(-50%, -120%);'">
+        <div x-show="hoverTip.line1" class="block w-full break-words text-gray-200 text-center" x-text="hoverTip.line1"></div>
+        <div class="block w-full break-words text-white text-center" x-text="hoverTip.line2"></div>
+    </div>
+
     <!-- Header -->
     <div class="sticky top-0 z-30 bg-surface">
         <div class="max-w-screen-2xl mx-auto px-4">
@@ -141,8 +149,7 @@
                                         </template>
                                         <!-- Primary installed mod: merged toggle + delete; also shown when candidates exist but don't cover this mod -->
                                         <template x-if="manager.isInstalled && (assumedNonManualCandidates().length === 0 || !isPrimaryModCoveredByCandidate())">
-                                            <div class="relative group inline-flex items-center gap-1 rounded-md border border-white/15 bg-white/5 px-1.5 py-1">
-                                                <span class="pointer-events-none absolute bottom-full left-1/2 z-50 mb-1 -translate-x-1/2 whitespace-nowrap rounded bg-gray-900 px-2 py-0.5 text-[10px] font-medium text-white opacity-0 shadow-lg transition-opacity duration-0 group-hover:opacity-100" :x-text="manager.localModName || manager.localModId || 'Primary mod'"></span>
+                                            <div class="inline-flex items-center gap-1 rounded-md border border-white/15 bg-white/5 px-1.5 py-1">
                                                 <span class="text-xs text-gray-200 max-w-[8rem] truncate" x-text="manager.localModName || manager.localModId || 'Installed mod'"></span>
                                                 <template x-if="manager.updateAvailable">
                                                     <div>
@@ -180,9 +187,11 @@
                                                         <template x-if="!activeDirectDownload()">
                                                             <button @click="downloadMod()"
                                                                 :disabled="!(manager.updateDownloadUrl || manager.directDownloadUrl)"
-                                                                class="relative group inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium transition border"
+                                                                @mouseenter.stop="showHoverTip($event, '', (manager.updateDownloadUrl || manager.directDownloadUrl) ? 'Update mod' : 'Update available — manual download required')"
+                                                                @mousemove.stop="moveHoverTip($event)"
+                                                                @mouseleave.stop="hideHoverTip()"
+                                                                class="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium transition border"
                                                                 :class="(manager.updateDownloadUrl || manager.directDownloadUrl) ? 'bg-amber-500/20 text-amber-300 border-amber-400/40 hover:bg-amber-500/30' : 'bg-gray-500/20 text-gray-400 border-gray-500/40 cursor-not-allowed opacity-80'">
-                                                                <span class="pointer-events-none absolute bottom-full left-1/2 z-50 mb-1 -translate-x-1/2 whitespace-nowrap rounded bg-gray-900 px-2 py-0.5 text-[10px] font-medium text-white opacity-0 shadow-lg transition-opacity duration-0 group-hover:opacity-100" :x-text="(manager.updateDownloadUrl || manager.directDownloadUrl) ? 'Update mod' : 'Update available — manual download required'"></span>
                                                                 <iconify-icon icon="heroicons:arrow-up-circle" width="14" height="14"></iconify-icon>
                                                                 <span>Update</span>
                                                             </button>
@@ -190,35 +199,43 @@
                                                     </div>
                                                 </template>
                                                 <button @click="toggleEnabled()"
+                                                    @mouseenter.stop="showHoverTip($event, '', manager.isEnabled ? 'Disable mod' : 'Enable mod')"
+                                                    @mousemove.stop="moveHoverTip($event)"
+                                                    @mouseleave.stop="hideHoverTip()"
                                                     class="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium border transition cursor-pointer"
                                                     :class="manager.isEnabled ? 'bg-emerald-500/20 text-emerald-300 border-emerald-400/40 hover:bg-emerald-500/30' : 'bg-gray-500/20 text-gray-400 border-gray-500/40 hover:bg-gray-500/30'">
                                                     <iconify-icon :icon="manager.isEnabled ? 'heroicons:check-circle' : 'heroicons:minus-circle'" width="14" height="14"></iconify-icon>
                                                     <span x-text="manager.isEnabled ? 'Enabled' : 'Disabled'"></span>
                                                 </button>
                                                 <button @click="deleteMod()"
-                                                    class="relative group inline-flex items-center rounded-md border border-red-500/30 bg-red-500/10 p-1 text-red-300 transition hover:bg-red-500/20"
+                                                    @mouseenter.stop="showHoverTip($event, '', 'Delete mod')"
+                                                    @mousemove.stop="moveHoverTip($event)"
+                                                    @mouseleave.stop="hideHoverTip()"
+                                                    class="inline-flex items-center rounded-md border border-red-500/30 bg-red-500/10 p-1 text-red-300 transition hover:bg-red-500/20"
                                                     :aria-label="'Delete ' + (manager.localModId || 'mod') + ' from disk'">
-                                                    <span class="pointer-events-none absolute bottom-full left-1/2 z-50 mb-1 -translate-x-1/2 whitespace-nowrap rounded bg-gray-900 px-2 py-0.5 text-[10px] font-medium text-white opacity-0 shadow-lg transition-opacity duration-0 group-hover:opacity-100" :x-text="'Delete ' + (manager.localModId || 'mod') + ' from disk'"></span>
                                                     <iconify-icon icon="heroicons:trash" width="16" height="16"></iconify-icon>
                                                 </button>
                                             </div>
                                         </template>
                                         <!-- Additional installed mods not covered by any candidate archive slot -->
                                         <template x-for="extra in getAdditionalModsNotCoveredByCandidates()" :key="extra.modId">
-                                            <div class="relative group inline-flex items-center gap-1 rounded-md border border-white/15 bg-white/5 px-1.5 py-1 ml-1">
-                                                <span class="pointer-events-none absolute bottom-full left-1/2 z-50 mb-1 -translate-x-1/2 whitespace-nowrap rounded bg-gray-900 px-2 py-0.5 text-[10px] font-medium text-white opacity-0 shadow-lg transition-opacity duration-0 group-hover:opacity-100" :x-text="extra.name || extra.modId"></span>
+                                            <div class="inline-flex items-center gap-1 rounded-md border border-white/15 bg-white/5 px-1.5 py-1 ml-1">
                                                 <span class="text-xs text-gray-200 max-w-[8rem] truncate" x-text="extra.name || extra.modId"></span>
                                                 <button @click="toggleExtraEnabled(extra)"
-                                                    class="relative group inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium border transition cursor-pointer"
+                                                    @mouseenter.stop="showHoverTip($event, extra.name || extra.modId, extra.isEnabled ? 'Disable mod' : 'Enable mod')"
+                                                    @mousemove.stop="moveHoverTip($event)"
+                                                    @mouseleave.stop="hideHoverTip()"
+                                                    class="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium border transition cursor-pointer"
                                                     :class="extra.isEnabled ? 'bg-emerald-500/20 text-emerald-300 border-emerald-400/40 hover:bg-emerald-500/30' : 'bg-gray-500/20 text-gray-400 border-gray-500/40 hover:bg-gray-500/30'">
-                                                    <span class="pointer-events-none absolute bottom-full left-1/2 z-50 mb-1 -translate-x-1/2 whitespace-nowrap rounded bg-gray-900 px-2 py-0.5 text-[10px] font-medium text-white opacity-0 shadow-lg transition-opacity duration-0 group-hover:opacity-100" :x-text="(extra.name || extra.modId) + ': click to ' + (extra.isEnabled ? 'disable' : 'enable')"></span>
                                                     <iconify-icon :icon="extra.isEnabled ? 'heroicons:check-circle' : 'heroicons:minus-circle'" width="14" height="14"></iconify-icon>
                                                     <span x-text="extra.isEnabled ? 'Enabled' : 'Disabled'"></span>
                                                 </button>
                                                 <button @click="deleteExtraMod(extra)"
-                                                    class="relative group inline-flex items-center rounded-md border border-red-500/30 bg-red-500/10 p-1 text-red-300 transition hover:bg-red-500/20"
+                                                    @mouseenter.stop="showHoverTip($event, extra.name || extra.modId, 'Delete mod')"
+                                                    @mousemove.stop="moveHoverTip($event)"
+                                                    @mouseleave.stop="hideHoverTip()"
+                                                    class="inline-flex items-center rounded-md border border-red-500/30 bg-red-500/10 p-1 text-red-300 transition hover:bg-red-500/20"
                                                     :aria-label="'Delete ' + (extra.name || extra.modId)">
-                                                    <span class="pointer-events-none absolute bottom-full left-1/2 z-50 mb-1 -translate-x-1/2 whitespace-nowrap rounded bg-gray-900 px-2 py-0.5 text-[10px] font-medium text-white opacity-0 shadow-lg transition-opacity duration-0 group-hover:opacity-100" :x-text="'Delete ' + (extra.name || extra.modId)"></span>
                                                     <iconify-icon icon="heroicons:trash" width="16" height="16"></iconify-icon>
                                                 </button>
                                             </div>
@@ -232,19 +249,23 @@
                                             <template x-if="candidateInstalledMods(ad).length > 0">
                                                 <div class="inline-flex items-center gap-1">
                                                     <template x-for="m in candidateInstalledMods(ad)" :key="'cand-installed-' + ad.originalUrl + '-' + m.modId">
-                                                        <div class="relative group inline-flex items-center gap-1 rounded-md border border-white/15 bg-white/5 px-1.5 py-1">
-                                                            <span class="pointer-events-none absolute bottom-full left-1/2 z-50 mb-1 -translate-x-1/2 whitespace-nowrap rounded bg-gray-900 px-2 py-0.5 text-[10px] font-medium text-white opacity-0 shadow-lg transition-opacity duration-0 group-hover:opacity-100" :x-text="m.name || m.modId"></span>
+                                                        <div class="inline-flex items-center gap-1 rounded-md border border-white/15 bg-white/5 px-1.5 py-1">
                                                             <span class="text-xs text-gray-200 max-w-[8rem] truncate" x-text="m.name || m.modId"></span>
                                                             <button @click="toggleCandidateEnabled(m)"
+                                                                @mouseenter.stop="showHoverTip($event, m.name || m.modId, m.isEnabled ? 'Disable mod' : 'Enable mod')"
+                                                                @mousemove.stop="moveHoverTip($event)"
+                                                                @mouseleave.stop="hideHoverTip()"
                                                                 class="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium border transition cursor-pointer"
                                                                 :class="m.isEnabled ? 'bg-emerald-500/20 text-emerald-300 border-emerald-400/40 hover:bg-emerald-500/30' : 'bg-gray-500/20 text-gray-400 border-gray-500/40 hover:bg-gray-500/30'">
                                                                 <iconify-icon :icon="m.isEnabled ? 'heroicons:check-circle' : 'heroicons:minus-circle'" width="14" height="14"></iconify-icon>
                                                                 <span x-text="m.isEnabled ? 'Enabled' : 'Disabled'"></span>
                                                             </button>
                                                             <button @click="deleteCandidate(m)"
-                                                                class="relative group inline-flex items-center rounded-md border border-red-500/30 bg-red-500/10 p-1 text-red-300 transition hover:bg-red-500/20"
+                                                                @mouseenter.stop="showHoverTip($event, m.name || m.modId, 'Delete mod')"
+                                                                @mousemove.stop="moveHoverTip($event)"
+                                                                @mouseleave.stop="hideHoverTip()"
+                                                                class="inline-flex items-center rounded-md border border-red-500/30 bg-red-500/10 p-1 text-red-300 transition hover:bg-red-500/20"
                                                                 :aria-label="'Delete ' + (m.name || m.modId)">
-                                                                <span class="pointer-events-none absolute bottom-full left-1/2 z-50 mb-1 -translate-x-1/2 whitespace-nowrap rounded bg-gray-900 px-2 py-0.5 text-[10px] font-medium text-white opacity-0 shadow-lg transition-opacity duration-0 group-hover:opacity-100" :x-text="'Delete ' + (m.name || m.modId)"></span>
                                                                 <iconify-icon icon="heroicons:trash" width="16" height="16"></iconify-icon>
                                                             </button>
                                                         </div>

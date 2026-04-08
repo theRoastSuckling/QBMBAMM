@@ -178,6 +178,63 @@ public class LinkageReportController : ControllerBase
         // 7. Assumed downloads
         var assumedCandidates = _assumed.GetCachedCandidates(id);
 
+        // 8. Dependencies declared by matched local mods, resolved against all installed local mods
+        var depEntries = new Dictionary<string, (ModDependency Dep, List<string> DeclaredBy)>(StringComparer.OrdinalIgnoreCase);
+        foreach (var modIdStr in seenModIds)
+        {
+            if (!localByModId.TryGetValue(modIdStr, out var lm) || lm.Dependencies == null) continue;
+            foreach (var dep in lm.Dependencies)
+            {
+                if (string.IsNullOrWhiteSpace(dep.Id)) continue;
+                if (!depEntries.TryGetValue(dep.Id, out var entry))
+                {
+                    entry = (dep, []);
+                    depEntries[dep.Id] = entry;
+                }
+                if (!entry.DeclaredBy.Contains(modIdStr, StringComparer.OrdinalIgnoreCase))
+                    entry.DeclaredBy.Add(modIdStr);
+            }
+        }
+
+        // Full modId->topicId map used to find whether each dependency has a known forum topic.
+        var allPersistedMatches = _matching.GetPersistedMatches();
+
+        // Resolve each dependency: install status + topic match via VersionChecker or persisted map.
+        var depPayload = depEntries.Values
+            .Select(e =>
+            {
+                var isInstalled = localByModId.TryGetValue(e.Dep.Id!, out var installedDep);
+
+                // Prefer VersionChecker ModThreadId; fall back to persisted matches.
+                int? matchedTopicId = null;
+                if (isInstalled
+                    && installedDep!.VersionChecker?.ModThreadId != null
+                    && int.TryParse(installedDep.VersionChecker.ModThreadId, out int vcTopic))
+                {
+                    matchedTopicId = vcTopic;
+                }
+                if (matchedTopicId == null
+                    && allPersistedMatches.TryGetValue(e.Dep.Id!, out int persistedTopic))
+                {
+                    matchedTopicId = persistedTopic;
+                }
+
+                return new
+                {
+                    id = e.Dep.Id,
+                    name = e.Dep.Name,
+                    requiredVersion = e.Dep.Version,
+                    isInstalled,
+                    installedVersion = isInstalled ? installedDep!.Version : null,
+                    installedName = isInstalled ? installedDep!.Name : null,
+                    matchedTopicId,
+                    declaredBy = e.DeclaredBy
+                };
+            })
+            .OrderBy(d => d.isInstalled ? 1 : 0)
+            .ThenBy(d => d.name ?? d.id)
+            .ToList();
+
         // Build storage paths
         var detailPath = Path.Combine(dataPath, "mods", id.ToString(), "detail.json");
         var detailFileExists = System.IO.File.Exists(detailPath);
@@ -195,7 +252,7 @@ public class LinkageReportController : ControllerBase
                     index = Path.GetFullPath(Path.Combine(dataPath, "mods-index.json")),
                     detail = detailFileExists ? Path.GetFullPath(detailPath) : null
                 },
-                connectionMethod = "Direct topicId field in scraped data",
+                connectionMethodKey = "direct-topic-id",
                 indexData = forumIndex,
                 detailData = forumDetail
             },
@@ -204,7 +261,7 @@ public class LinkageReportController : ControllerBase
             {
                 exists = repoEntry != null,
                 storagePath = Path.GetFullPath(Path.Combine(dataPath, "mod-repo-cache.json")),
-                connectionMethod = "Urls.Forum parsed for ?topic= parameter",
+                connectionMethodKey = "urls-forum-param",
                 sourceUrl = "https://github.com/wispborne/StarsectorModRepo/raw/refs/heads/main/ModRepo.json",
                 data = modRepo
             },
@@ -226,7 +283,7 @@ public class LinkageReportController : ControllerBase
             {
                 exists = versionChecks.Count > 0,
                 storagePath = "*.version files inside each mod's data/config/version/ folder",
-                connectionMethod = "Embedded in local mod folder; modThreadId links back to topic",
+                connectionMethodKey = "embedded-mod-folder",
                 data = versionChecks
             },
 
@@ -234,7 +291,7 @@ public class LinkageReportController : ControllerBase
             {
                 exists = archiveEntries != null && archiveEntries.Count > 0,
                 storagePath = Path.GetFullPath(Path.Combine(dataPath, "topic-archive-map.json")),
-                connectionMethod = "Key is topicId; modIds[] link to local mod folders",
+                connectionMethodKey = "topic-archive-map",
                 data = archivePayload
             },
 
@@ -242,7 +299,7 @@ public class LinkageReportController : ControllerBase
             {
                 exists = persistedMatches.Count > 0,
                 storagePath = Path.GetFullPath(Path.Combine(dataPath, "mod-matches.json")),
-                connectionMethod = "Auto-saved when an installed local mod is matched to a forum topic while browsing. Independent of QBMBAMM download history.",
+                connectionMethodKey = "persisted-mod-matches",
                 data = persistedMatches
             },
 
@@ -250,8 +307,17 @@ public class LinkageReportController : ControllerBase
             {
                 exists = assumedCandidates != null && assumedCandidates.Count > 0,
                 storagePath = Path.GetFullPath(Path.Combine(dataPath, "assumed-downloads-cache.json")),
-                connectionMethod = "Resolved from forum post links; key is topicId",
+                connectionMethodKey = "resolved-post-links",
                 data = assumedCandidates
+            },
+
+            // Dependencies declared by matched local mods, each resolved against the full local mod install.
+            dependencies = new
+            {
+                exists = depPayload.Count > 0,
+                storagePath = modsPath,
+                connectionMethodKey = "mod-info-deps",
+                data = depPayload
             }
         });
     }

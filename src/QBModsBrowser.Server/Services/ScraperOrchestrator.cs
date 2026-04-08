@@ -105,11 +105,18 @@ public class ScraperOrchestrator : BackgroundService
                     _currentEngine = null;
                 }
 
-                // Bundle and publish only when opted in; fire-and-forget so it never blocks the scrape loop.
+                // Bundle and publish only when the scrape succeeded and opted in; fire-and-forget so it never blocks the scrape loop.
                 _ = Task.Run(async () =>
                 {
                     try
                     {
+                        // Skip publish entirely if the scrape was cancelled, force-closed, or failed.
+                        if (!result.Success)
+                        {
+                            _log.Information("Skipping post-scrape publish — scrape did not succeed (cancelled or failed).");
+                            return;
+                        }
+
                         var postConfig = await _store.LoadConfig();
                         if (!postConfig.AutoPublishAfterScrape)
                             return;

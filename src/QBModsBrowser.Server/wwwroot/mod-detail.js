@@ -24,6 +24,32 @@ function modDetail() {
         _navCtx: null,
         _fetchingAdjacentMod: false,
 
+        // Mouse-following tooltip state; shared with the fixed hover-tip div in mod.html.
+        hoverTip: { show: false, x: 0, y: 0, line1: '', line2: '' },
+
+        // Shows the custom tooltip near the current pointer.
+        showHoverTip(e, line1, line2) {
+            this.hoverTip.show = true;
+            this.hoverTip.line1 = line1 || '';
+            this.hoverTip.line2 = line2 || '';
+            this.moveHoverTip(e);
+        },
+
+        // Repositions the custom tooltip while pointer moves.
+        moveHoverTip(e) {
+            if (!this.hoverTip.show) return;
+            const viewportWidth = window.innerWidth || 0;
+            const minX = 180;
+            const maxX = Math.max(minX, viewportWidth - 180);
+            this.hoverTip.x = Math.min(Math.max(e.clientX, minX), maxX);
+            this.hoverTip.y = Math.max(36, e.clientY - 10);
+        },
+
+        // Hides the custom hover tooltip on pointer exit.
+        hideHoverTip() {
+            this.hoverTip.show = false;
+        },
+
         // Maps category labels to stable icon category keys.
         categoryIcon(categoryName) {
             if (!categoryName) return 'uncategorized';

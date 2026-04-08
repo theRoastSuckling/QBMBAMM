@@ -162,6 +162,7 @@ internal static class Program
         Log.Information("Server starting. Data: {DataPath}, Logs: {LogPath}, ModsPath: {ModsPath}", basePath, logPath, managerConfig.ModsPath);
 
         // Services
+        builder.Services.AddSingleton(new PlaywrightService(Log.Logger));
         builder.Services.AddSingleton(new JsonDataStore(Log.Logger, basePath));
         builder.Services.AddSingleton(new ForumDataBundler(Log.Logger));
         builder.Services.AddSingleton(new ForumDataPublisher(Log.Logger, appConfig.ForumDataRepo));

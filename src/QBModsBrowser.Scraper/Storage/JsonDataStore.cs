@@ -194,7 +194,7 @@ public class ScraperConfig
     public bool? OpenLinksInNewTab { get; set; }
 
     // When true, external images fetched through the proxy are saved to disk for reuse.
-    public bool CacheExternalImages { get; set; } = true;
+    public bool CacheExternalImages { get; set; } = false;
 
     // When true, INF-level entries are printed to the server console; false suppresses them (default).
     public bool ShowInfoConsoleLogs { get; set; } = false;

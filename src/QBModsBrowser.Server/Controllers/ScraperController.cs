@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using QBModsBrowser.Scraper.Models;
 using QBModsBrowser.Scraper.Storage;
@@ -7,20 +8,30 @@ namespace QBModsBrowser.Server.Controllers;
 
 [ApiController]
 [Route("api/scraper")]
-// Exposes scraper status, start/stop, config, and log endpoints for the UI control panel.
+// Exposes scraper status, start/stop, config, log, Playwright install, and remote-data-info endpoints for the UI control panel.
 public class ScraperController : ControllerBase
 {
     private readonly ScraperOrchestrator _orchestrator;
     private readonly JsonDataStore _store;
     private readonly IConfiguration _config;
+    private readonly PlaywrightService _playwright;
 
-    public ScraperController(ScraperOrchestrator orchestrator, JsonDataStore store, IConfiguration config)
+    // Accepts PlaywrightService to support browser detection and install endpoints.
+    public ScraperController(
+        ScraperOrchestrator orchestrator,
+        JsonDataStore store,
+        IConfiguration config,
+        PlaywrightService playwright)
     {
         _orchestrator = orchestrator;
         _store = store;
         _config = config;
+        _playwright = playwright;
     }
 
+    // Returns scraper state, stats, and Playwright installation status.
+    // Playwright check is included here so the UI always has a fresh value from the first poll,
+    // regardless of when the control panel is opened.
     [HttpGet("status")]
     public async Task<IActionResult> GetStatus()
     {
@@ -32,6 +43,7 @@ public class ScraperController : ControllerBase
         {
             state = job.State.ToString().ToLowerInvariant(),
             isScraping = _orchestrator.IsScraping,
+            isPlaywrightInstalled = _playwright.IsInstalled(),
             job = new
             {
                 job.Id,
@@ -203,6 +215,78 @@ public class ScraperController : ControllerBase
 
         await _store.SaveIndex(index);
         return Ok(new { message = $"Backfilled {updated} thumbnails", updated });
+    }
+
+    // Returns whether Playwright Chromium is installed on this machine.
+    [HttpGet("playwright-status")]
+    public IActionResult GetPlaywrightStatus()
+    {
+        return Ok(new { isInstalled = _playwright.IsInstalled() });
+    }
+
+    // Starts a Playwright Chromium installation in the background; returns 409 if already running.
+    [HttpPost("playwright/install")]
+    public IActionResult StartPlaywrightInstall()
+    {
+        bool started = _playwright.StartInstall();
+        if (!started)
+            return Conflict(new { error = "Installation already in progress" });
+
+        return Ok(new { message = "Installation started" });
+    }
+
+    // Returns live progress lines and completion state for an ongoing or finished Playwright install.
+    [HttpGet("playwright/install-status")]
+    public IActionResult GetPlaywrightInstallStatus()
+    {
+        var s = _playwright.GetInstallStatus();
+        return Ok(new
+        {
+            running = s.Running,
+            succeeded = s.Succeeded,
+            exitCode = s.ExitCode,
+            lines = s.Lines
+        });
+    }
+
+    // Returns the UpdatedAt timestamp from the last successfully fetched remote bundle and
+    // the last time this machine fetched it, so the UI can display data freshness.
+    [HttpGet("remote-data-info")]
+    public async Task<IActionResult> GetRemoteDataInfo()
+    {
+        string dataPath = _config["ResolvedDataPath"]
+            ?? Path.GetFullPath("../../data", AppContext.BaseDirectory);
+
+        DateTime? updatedAt = null;
+        DateTime? lastFetched = null;
+
+        var metaPath = Path.Combine(dataPath, ForumDataFetchService.BundleMetaFileName);
+        if (System.IO.File.Exists(metaPath))
+        {
+            try
+            {
+                var json = await System.IO.File.ReadAllTextAsync(metaPath);
+                var doc = JsonDocument.Parse(json);
+                if (doc.RootElement.TryGetProperty("updatedAt", out var prop) &&
+                    prop.TryGetDateTime(out var dt))
+                    updatedAt = dt;
+            }
+            catch { /* non-fatal */ }
+        }
+
+        var fetchedPath = Path.Combine(dataPath, "remote-last-fetched.txt");
+        if (System.IO.File.Exists(fetchedPath))
+        {
+            try
+            {
+                var raw = await System.IO.File.ReadAllTextAsync(fetchedPath);
+                if (DateTime.TryParse(raw.Trim(), out var dt))
+                    lastFetched = dt;
+            }
+            catch { /* non-fatal */ }
+        }
+
+        return Ok(new { updatedAt, lastFetched });
     }
 }
 

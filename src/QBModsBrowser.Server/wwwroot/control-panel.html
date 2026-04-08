@@ -118,243 +118,306 @@
                         </div>
                     </div>
 
-                    <!-- Forum scrape: status, controls, timing, and auto-scrape in one collapsible block. -->
-                    <div class="bg-surface-alt rounded-lg border border-gray-700 overflow-hidden">
-                        <button type="button"
-                            id="panel-forum-scrape-trigger"
-                            :aria-expanded="panel.scrapeSectionExpanded"
-                            aria-controls="panel-forum-scrape-body"
-                            @click="panel.scrapeSectionExpanded = !panel.scrapeSectionExpanded"
-                            class="w-full flex items-center justify-between gap-3 px-4 py-3 text-left hover:bg-white/[0.04] transition">
-                            <div class="flex items-center gap-2 min-w-0 flex-wrap">
-                                <span class="text-sm font-semibold text-white">Forum scraping</span>
-                                <span class="inline-flex items-center gap-1.5 text-xs text-amber-400" x-show="panel.status.isScraping" x-cloak>
-                                    <span class="w-2 h-2 rounded-full bg-amber-500 pulse-glow shrink-0"></span>
-                                    Running
-                                </span>
-                            </div>
-                            <span class="shrink-0 text-gray-400 transition-transform duration-200 inline-flex"
-                                :class="panel.scrapeSectionExpanded ? 'rotate-180' : ''">
-                                <iconify-icon icon="heroicons:chevron-down" width="20" height="20"></iconify-icon>
-                            </span>
-                        </button>
-                        <div id="panel-forum-scrape-body" role="region" aria-labelledby="panel-forum-scrape-trigger"
-                            x-show="panel.scrapeSectionExpanded" x-transition
-                            class="border-t border-gray-700 p-4 space-y-5">
+                    <!-- Forum scraping section: conditional on whether Playwright Chromium is installed. -->
+                    <div x-show="panel.playwrightInstalled !== null" x-cloak>
 
-                            <!-- Status -->
-                            <div class="bg-surface-alt rounded-lg border border-gray-700 p-4">
-                                <div class="flex items-center justify-between mb-3">
-                                    <h3 class="text-sm font-semibold text-white">Scraper Status</h3>
-                                    <div class="flex items-center gap-2">
-                                        <span class="w-2.5 h-2.5 rounded-full"
-                                            :class="{
-                                                'bg-green-500': panel.status.state === 'idle' || panel.status.state === 'completed',
-                                                'bg-amber-500 pulse-glow': panel.status.state === 'scraping',
-                                                'bg-red-500': panel.status.state === 'failed',
-                                                'bg-gray-500': panel.status.state === 'cancelled'
-                                            }"></span>
-                                        <span class="text-sm font-medium capitalize" x-text="panel.status.state || 'Unknown'"></span>
+                        <!-- Remote data freshness — always visible regardless of Playwright state. -->
+                        <div class="bg-surface-alt rounded-lg border border-gray-700 p-4 mb-5"
+                            x-show="panel.remoteDataInfo.updatedAt || panel.remoteDataInfo.lastFetched">
+                            <h3 class="text-sm font-semibold text-white mb-2">Remote Forum Data</h3>
+                            <div class="space-y-1">
+                                <div class="flex items-center justify-between" x-show="panel.remoteDataInfo.updatedAt">
+                                    <span class="text-xs text-gray-400">Last scraped</span>
+                                    <span class="text-xs text-gray-200" x-text="panel.formatDate(panel.remoteDataInfo.updatedAt)"></span>
+                                </div>
+                                <div class="flex items-center justify-between" x-show="panel.remoteDataInfo.lastFetched">
+                                    <span class="text-xs text-gray-500">Fetched locally</span>
+                                    <span class="text-xs text-gray-500" x-text="panel.formatDate(panel.remoteDataInfo.lastFetched)"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- No Playwright: show explanation and optional install UI. -->
+                        <div x-show="!panel.playwrightInstalled" class="bg-surface-alt rounded-lg border border-gray-700 p-4 space-y-4">
+                            <div>
+                                <h3 class="text-sm font-semibold text-white mb-1">Forum scraping</h3>
+                                <p class="text-xs text-gray-400 leading-relaxed">
+                                    Scraping isn't needed if remote mod data is recent enough. It is automatically fetched from the
+                                    <a href="https://github.com/theRoastSuckling/QBForumModData" target="_blank" rel="noopener"
+                                        class="text-accent hover:underline">QBForumModData repository</a>.
+                                    Install Playwright only if you want to run your own scrape of the forum.
+                                </p>
+                            </div>
+
+                            <!-- Install Playwright button and progress log. -->
+                            <div>
+                                <button
+                                    @click="panel.installPlaywright()"
+                                    :disabled="panel.playwrightInstall.running"
+                                    class="px-3 py-1.5 rounded text-xs font-medium transition bg-surface-raised text-gray-300 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
+                                    <span x-show="panel.playwrightInstall.running" class="w-2 h-2 rounded-full bg-amber-500 pulse-glow shrink-0"></span>
+                                    <span x-show="!panel.playwrightInstall.running">Install Playwright (Chromium)</span>
+                                    <span x-show="panel.playwrightInstall.running">Installing…</span>
+                                </button>
+                                <p class="text-[10px] text-gray-600 mt-1">
+                                    Downloads ~300 MB to %LOCALAPPDATA%\ms-playwright. Persists across app updates.
+                                </p>
+                            </div>
+
+                            <!-- Live install output, shown once the install has started. -->
+                            <div x-show="panel.playwrightInstall.lines.length > 0" x-transition>
+                                <div class="mt-2 rounded bg-surface border border-gray-700 p-2 max-h-40 overflow-y-auto font-mono">
+                                    <template x-for="(line, i) in panel.playwrightInstall.lines" :key="i">
+                                        <div class="text-[10px] text-gray-400 leading-snug" x-text="line || '\u00a0'"></div>
+                                    </template>
+                                </div>
+                                <p x-show="panel.playwrightInstall.succeeded === true"
+                                    class="mt-2 text-xs text-green-400">Playwright installed successfully.</p>
+                                <p x-show="panel.playwrightInstall.succeeded === false"
+                                    class="mt-2 text-xs text-red-400">Installation failed — check the output above.</p>
+                            </div>
+                        </div>
+
+                        <!-- Playwright installed: full scrape collapsible. -->
+                        <div x-show="panel.playwrightInstalled"
+                            class="bg-surface-alt rounded-lg border border-gray-700 overflow-hidden">
+                            <button type="button"
+                                id="panel-forum-scrape-trigger"
+                                :aria-expanded="panel.scrapeSectionExpanded"
+                                aria-controls="panel-forum-scrape-body"
+                                @click="panel.scrapeSectionExpanded = !panel.scrapeSectionExpanded"
+                                class="w-full flex items-center justify-between gap-3 px-4 py-3 text-left hover:bg-white/[0.04] transition">
+                                <div class="flex items-center gap-2 min-w-0 flex-wrap">
+                                    <span class="text-sm font-semibold text-white">Forum scraping</span>
+                                    <span class="inline-flex items-center gap-1.5 text-xs text-amber-400" x-show="panel.status.isScraping" x-cloak>
+                                        <span class="w-2 h-2 rounded-full bg-amber-500 pulse-glow shrink-0"></span>
+                                        Running
+                                    </span>
+                                </div>
+                                <span class="shrink-0 text-gray-400 transition-transform duration-200 inline-flex"
+                                    :class="panel.scrapeSectionExpanded ? 'rotate-180' : ''">
+                                    <iconify-icon icon="heroicons:chevron-down" width="20" height="20"></iconify-icon>
+                                </span>
+                            </button>
+                            <div id="panel-forum-scrape-body" role="region" aria-labelledby="panel-forum-scrape-trigger"
+                                x-show="panel.scrapeSectionExpanded" x-transition
+                                class="border-t border-gray-700 p-4 space-y-5">
+
+                                <!-- Status -->
+                                <div class="bg-surface-alt rounded-lg border border-gray-700 p-4">
+                                    <div class="flex items-center justify-between mb-3">
+                                        <h3 class="text-sm font-semibold text-white">Scraper Status</h3>
+                                        <div class="flex items-center gap-2">
+                                            <span class="w-2.5 h-2.5 rounded-full"
+                                                :class="{
+                                                    'bg-green-500': panel.status.state === 'idle' || panel.status.state === 'completed',
+                                                    'bg-amber-500 pulse-glow': panel.status.state === 'scraping',
+                                                    'bg-red-500': panel.status.state === 'failed',
+                                                    'bg-gray-500': panel.status.state === 'cancelled'
+                                                }"></span>
+                                            <span class="text-sm font-medium capitalize" x-text="panel.status.state || 'Unknown'"></span>
+                                        </div>
+                                    </div>
+                                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+                                        <div>
+                                            <p class="text-xl font-bold text-white" x-text="panel.status.stats?.totalMods ?? '-'"></p>
+                                            <p class="text-[10px] text-gray-500">Mods</p>
+                                        </div>
+                                        <div>
+                                            <p class="text-xl font-bold text-white" x-text="panel.status.stats?.totalImages ?? '-'"></p>
+                                            <p class="text-[10px] text-gray-500">Images</p>
+                                        </div>
+                                        <div>
+                                            <p class="text-xl font-bold text-white" x-text="panel.status.stats?.totalSizeFormatted ?? '-'"></p>
+                                            <p class="text-[10px] text-gray-500">Data Size</p>
+                                        </div>
+                                        <div>
+                                            <p class="text-xl font-bold text-white" x-text="panel.status.job?.duration ?? '-'"></p>
+                                            <p class="text-[10px] text-gray-500">Duration</p>
+                                        </div>
+                                    </div>
+                                    <div class="mt-3 text-xs text-gray-500 space-y-0.5" x-show="panel.status.job?.finishedAt">
+                                        <p>Finished: <span class="text-gray-400" x-text="panel.formatDate(panel.status.job?.finishedAt)"></span></p>
+                                        <p x-show="panel.status.lastResult">
+                                            Result: <span class="text-gray-400"
+                                                x-text="(panel.status.lastResult?.modsScraped ?? 0) + ' mods, ' +
+                                                        (panel.status.lastResult?.imagesDownloaded ?? 0) + ' images, ' +
+                                                        (panel.status.lastResult?.errors ?? 0) + ' errors'"></span>
+                                        </p>
                                     </div>
                                 </div>
-                                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
-                                    <div>
-                                        <p class="text-xl font-bold text-white" x-text="panel.status.stats?.totalMods ?? '-'"></p>
-                                        <p class="text-[10px] text-gray-500">Mods</p>
+
+                                <!-- Progress -->
+                                <div class="bg-surface-alt rounded-lg border border-gray-700 p-4" x-show="panel.status.isScraping" x-cloak>
+                                    <h3 class="text-sm font-semibold text-white mb-2">Progress</h3>
+                                    <div class="flex justify-between text-xs text-gray-400 mb-1">
+                                        <div class="flex flex-col min-w-0 mr-2">
+                                            <span class="truncate text-[10px] text-gray-500 leading-tight" x-show="panel.status.job?.currentPhase" x-text="panel.status.job?.currentPhase"></span>
+                                            <span class="truncate text-gray-300" x-text="panel.status.job?.currentItem || (panel.status.job?.currentPhase ? '…' : 'Starting...')"></span>
+                                        </div>
+                                        <span class="shrink-0" x-text="(panel.status.job?.totalTopics ?? 0) === 0 && panel.status.job?.currentPhase ? '—' : ((panel.status.job?.processedTopics ?? 0) + ' / ' + (panel.status.job?.totalTopics ?? '?'))"></span>
                                     </div>
-                                    <div>
-                                        <p class="text-xl font-bold text-white" x-text="panel.status.stats?.totalImages ?? '-'"></p>
-                                        <p class="text-[10px] text-gray-500">Images</p>
+                                    <div class="w-full bg-surface-raised rounded-full h-2 mb-2">
+                                        <div class="bg-accent h-2 rounded-full transition-all duration-500"
+                                            :style="'width: ' + (panel.status.job?.progressPercent ?? 0) + '%'"></div>
                                     </div>
-                                    <div>
-                                        <p class="text-xl font-bold text-white" x-text="panel.status.stats?.totalSizeFormatted ?? '-'"></p>
-                                        <p class="text-[10px] text-gray-500">Data Size</p>
-                                    </div>
-                                    <div>
-                                        <p class="text-xl font-bold text-white" x-text="panel.status.job?.duration ?? '-'"></p>
-                                        <p class="text-[10px] text-gray-500">Duration</p>
+                                    <div class="flex gap-3 text-[10px] text-gray-500">
+                                        <span>Topics: <span class="text-gray-400" x-text="panel.status.job?.processedTopics ?? 0"></span></span>
+                                        <span>Imgs: <span class="text-gray-400" x-text="panel.status.job?.downloadedImages ?? 0"></span></span>
+                                        <span>Errs: <span class="text-gray-400" x-text="panel.status.job?.errors ?? 0"></span></span>
                                     </div>
                                 </div>
-                                <div class="mt-3 text-xs text-gray-500 space-y-0.5" x-show="panel.status.job?.finishedAt">
-                                    <p>Finished: <span class="text-gray-400" x-text="panel.formatDate(panel.status.job?.finishedAt)"></span></p>
-                                    <p x-show="panel.status.lastResult">
-                                        Result: <span class="text-gray-400"
-                                            x-text="(panel.status.lastResult?.modsScraped ?? 0) + ' mods, ' +
-                                                    (panel.status.lastResult?.imagesDownloaded ?? 0) + ' images, ' +
-                                                    (panel.status.lastResult?.errors ?? 0) + ' errors'"></span>
+
+                                <!-- Scrape Controls -->
+                                <div class="bg-surface-alt rounded-lg border border-gray-700 p-4">
+                                    <h3 class="text-sm font-semibold text-white mb-3">Scrape Controls</h3>
+                                    <div class="space-y-3 mb-4">
+                                        <label class="text-xs text-gray-400 block">Scope</label>
+                                        <div class="flex flex-wrap gap-2">
+                                            <button class="px-3 py-1.5 rounded text-xs transition"
+                                                :class="panel.scope === 'new' ? 'bg-accent text-white' : 'bg-surface-raised text-gray-300 hover:bg-gray-600'"
+                                                @click="panel.scope = 'new'">New Data</button>
+                                            <button class="px-3 py-1.5 rounded text-xs transition"
+                                                :class="panel.scope === 'all' ? 'bg-accent text-white' : 'bg-surface-raised text-gray-300 hover:bg-gray-600'"
+                                                @click="panel.scope = 'all'">All Pages</button>
+                                            <button class="px-3 py-1.5 rounded text-xs transition"
+                                                :class="panel.scope === 'pages' ? 'bg-accent text-white' : 'bg-surface-raised text-gray-300 hover:bg-gray-600'"
+                                                @click="panel.scope = 'pages'">First N Pages</button>
+                                            <button class="px-3 py-1.5 rounded text-xs transition"
+                                                :class="panel.scope === 'topics' ? 'bg-accent text-white' : 'bg-surface-raised text-gray-300 hover:bg-gray-600'"
+                                                @click="panel.scope = 'topics'">Specific Topics</button>
+                                        </div>
+                                        <div x-show="panel.scope !== 'topics'">
+                                            <label class="text-xs text-gray-400 block mb-1.5">Boards</label>
+                                            <div class="flex flex-wrap gap-2">
+                                                <button class="relative group px-3 py-1.5 rounded text-xs transition"
+                                                    :class="panel.boards.main ? 'bg-accent text-white' : 'bg-surface-raised text-gray-300 hover:bg-gray-600'"
+                                                    @click="panel.toggleBoard('main')">
+                                                    <span class="pointer-events-none absolute bottom-full left-1/2 z-50 mb-1 -translate-x-1/2 whitespace-nowrap rounded bg-gray-900 px-2 py-0.5 text-[10px] font-medium text-white opacity-0 shadow-lg transition-opacity duration-0 group-hover:opacity-100">Main mods board (board 8)</span>
+                                                    Main (8)</button>
+                                                <button class="relative group px-3 py-1.5 rounded text-xs transition"
+                                                    :class="panel.boards.lesser ? 'bg-accent text-white' : 'bg-surface-raised text-gray-300 hover:bg-gray-600'"
+                                                    @click="panel.toggleBoard('lesser')">
+                                                    <span class="pointer-events-none absolute bottom-full left-1/2 z-50 mb-1 -translate-x-1/2 whitespace-nowrap rounded bg-gray-900 px-2 py-0.5 text-[10px] font-medium text-white opacity-0 shadow-lg transition-opacity duration-0 group-hover:opacity-100">Lesser mods board (board 3) — capped at 20 pages</span>
+                                                    Lesser (3)</button>
+                                                <button class="relative group px-3 py-1.5 rounded text-xs transition"
+                                                    :class="panel.boards.libraries ? 'bg-accent text-white' : 'bg-surface-raised text-gray-300 hover:bg-gray-600'"
+                                                    @click="panel.toggleBoard('libraries')">
+                                                    <span class="pointer-events-none absolute bottom-full left-1/2 z-50 mb-1 -translate-x-1/2 whitespace-nowrap rounded bg-gray-900 px-2 py-0.5 text-[10px] font-medium text-white opacity-0 shadow-lg transition-opacity duration-0 group-hover:opacity-100">Modding Resources board (board 9)</span>
+                                                    Libraries (9)</button>
+                                            </div>
+                                        </div>
+                                        <div x-show="panel.scope === 'pages'" class="flex items-center gap-2">
+                                            <label class="text-xs text-gray-400">Pages:</label>
+                                            <input type="number" min="1" max="34" x-model.number="panel.maxPages"
+                                                class="w-20 bg-surface border border-gray-600 rounded px-2 py-1 text-sm">
+                                        </div>
+                                        <div x-show="panel.scope === 'topics'">
+                                            <label class="text-xs text-gray-400 block mb-1">Topic IDs (comma-separated):</label>
+                                            <input type="text" x-model="panel.topicIdsStr" placeholder="e.g. 30407, 25296"
+                                                class="w-full bg-surface border border-gray-600 rounded px-2 py-1 text-sm">
+                                        </div>
+                                    </div>
+                                    <div class="flex gap-2">
+                                        <button @click="panel.startScrape()"
+                                            :disabled="panel.status.isScraping"
+                                            class="px-4 py-1.5 bg-accent hover:bg-accent-hover text-white rounded text-sm font-medium transition disabled:opacity-40 disabled:cursor-not-allowed">
+                                            Scrape Now
+                                        </button>
+                                        <button @click="panel.stopScrape()" x-show="panel.status.isScraping"
+                                            class="px-4 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded text-sm font-medium transition">
+                                            Stop
+                                        </button>
+                                    </div>
+                                    <p class="text-xs text-gray-500 mt-2" x-show="panel.message" x-text="panel.message"></p>
+                                </div>
+
+                                <!-- Scrape Timing -->
+                                <div class="bg-surface-alt rounded-lg border border-gray-700 p-4">
+                                    <h3 class="text-sm font-semibold text-white mb-3">Scrape Timing (All Scrapes)</h3>
+                                    <div class="flex flex-wrap items-end gap-3 mb-3">
+                                        <div>
+                                            <label class="text-[10px] text-gray-400 block mb-1">Page delay (ms)</label>
+                                            <div class="panel-number-wrap">
+                                                <input type="number" min="500" step="100" x-model.number="panel.config.delayBetweenPagesMs"
+                                                    @change="panel.saveConfig({ silent: true })"
+                                                    class="panel-number-input">
+                                                <div class="panel-stepper">
+                                                    <button type="button" class="relative group panel-stepper-btn"
+                                                        @click="panel.config.delayBetweenPagesMs = Math.max(500, Number(panel.config.delayBetweenPagesMs || 500) + 100); panel.saveConfig({ silent: true })">
+                                                        <span class="pointer-events-none absolute bottom-full left-1/2 z-50 mb-1 -translate-x-1/2 whitespace-nowrap rounded bg-gray-900 px-2 py-0.5 text-[10px] font-medium text-white opacity-0 shadow-lg transition-opacity duration-0 group-hover:opacity-100">Increase</span>
+                                                        <svg class="w-2.5 h-2.5" viewBox="0 0 20 20" fill="currentColor"><path d="M5 12l5-5 5 5H5z"/></svg>
+                                                    </button>
+                                                    <button type="button" class="relative group panel-stepper-btn"
+                                                        @click="panel.config.delayBetweenPagesMs = Math.max(500, Number(panel.config.delayBetweenPagesMs || 500) - 100); panel.saveConfig({ silent: true })">
+                                                        <span class="pointer-events-none absolute bottom-full left-1/2 z-50 mb-1 -translate-x-1/2 whitespace-nowrap rounded bg-gray-900 px-2 py-0.5 text-[10px] font-medium text-white opacity-0 shadow-lg transition-opacity duration-0 group-hover:opacity-100">Decrease</span>
+                                                        <svg class="w-2.5 h-2.5" viewBox="0 0 20 20" fill="currentColor"><path d="M5 8l5 5 5-5H5z"/></svg>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label class="text-[10px] text-gray-400 block mb-1">Topic delay (ms)</label>
+                                            <div class="panel-number-wrap">
+                                                <input type="number" min="500" step="100" x-model.number="panel.config.delayBetweenTopicsMs"
+                                                    @change="panel.saveConfig({ silent: true })"
+                                                    class="panel-number-input">
+                                                <div class="panel-stepper">
+                                                    <button type="button" class="relative group panel-stepper-btn"
+                                                        @click="panel.config.delayBetweenTopicsMs = Math.max(500, Number(panel.config.delayBetweenTopicsMs || 500) + 100); panel.saveConfig({ silent: true })">
+                                                        <span class="pointer-events-none absolute bottom-full left-1/2 z-50 mb-1 -translate-x-1/2 whitespace-nowrap rounded bg-gray-900 px-2 py-0.5 text-[10px] font-medium text-white opacity-0 shadow-lg transition-opacity duration-0 group-hover:opacity-100">Increase</span>
+                                                        <svg class="w-2.5 h-2.5" viewBox="0 0 20 20" fill="currentColor"><path d="M5 12l5-5 5 5H5z"/></svg>
+                                                    </button>
+                                                    <button type="button" class="relative group panel-stepper-btn"
+                                                        @click="panel.config.delayBetweenTopicsMs = Math.max(500, Number(panel.config.delayBetweenTopicsMs || 500) - 100); panel.saveConfig({ silent: true })">
+                                                        <span class="pointer-events-none absolute bottom-full left-1/2 z-50 mb-1 -translate-x-1/2 whitespace-nowrap rounded bg-gray-900 px-2 py-0.5 text-[10px] font-medium text-white opacity-0 shadow-lg transition-opacity duration-0 group-hover:opacity-100">Decrease</span>
+                                                        <svg class="w-2.5 h-2.5" viewBox="0 0 20 20" fill="currentColor"><path d="M5 8l5 5 5-5H5z"/></svg>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <p class="text-[10px] text-gray-500 mb-3">
+                                        Page delay waits between board pages. Topic delay waits between opening topic threads.
+                                        Both apply to manual and auto scrapes.
                                     </p>
                                 </div>
-                            </div>
 
-                            <!-- Progress -->
-                            <div class="bg-surface-alt rounded-lg border border-gray-700 p-4" x-show="panel.status.isScraping" x-cloak>
-                                <h3 class="text-sm font-semibold text-white mb-2">Progress</h3>
-                                <div class="flex justify-between text-xs text-gray-400 mb-1">
-                                    <div class="flex flex-col min-w-0 mr-2">
-                                        <span class="truncate text-[10px] text-gray-500 leading-tight" x-show="panel.status.job?.currentPhase" x-text="panel.status.job?.currentPhase"></span>
-                                        <span class="truncate text-gray-300" x-text="panel.status.job?.currentItem || (panel.status.job?.currentPhase ? '…' : 'Starting...')"></span>
-                                    </div>
-                                    <span class="shrink-0" x-text="(panel.status.job?.totalTopics ?? 0) === 0 && panel.status.job?.currentPhase ? '—' : ((panel.status.job?.processedTopics ?? 0) + ' / ' + (panel.status.job?.totalTopics ?? '?'))"></span>
-                                </div>
-                                <div class="w-full bg-surface-raised rounded-full h-2 mb-2">
-                                    <div class="bg-accent h-2 rounded-full transition-all duration-500"
-                                        :style="'width: ' + (panel.status.job?.progressPercent ?? 0) + '%'"></div>
-                                </div>
-                                <div class="flex gap-3 text-[10px] text-gray-500">
-                                    <span>Topics: <span class="text-gray-400" x-text="panel.status.job?.processedTopics ?? 0"></span></span>
-                                    <span>Imgs: <span class="text-gray-400" x-text="panel.status.job?.downloadedImages ?? 0"></span></span>
-                                    <span>Errs: <span class="text-gray-400" x-text="panel.status.job?.errors ?? 0"></span></span>
-                                </div>
-                            </div>
-
-                            <!-- Scrape Controls -->
-                            <div class="bg-surface-alt rounded-lg border border-gray-700 p-4">
-                                <h3 class="text-sm font-semibold text-white mb-3">Scrape Controls</h3>
-                                <div class="space-y-3 mb-4">
-                                    <label class="text-xs text-gray-400 block">Scope</label>
-                                    <div class="flex flex-wrap gap-2">
-                                        <button class="px-3 py-1.5 rounded text-xs transition"
-                                            :class="panel.scope === 'new' ? 'bg-accent text-white' : 'bg-surface-raised text-gray-300 hover:bg-gray-600'"
-                                            @click="panel.scope = 'new'">New Data</button>
-                                        <button class="px-3 py-1.5 rounded text-xs transition"
-                                            :class="panel.scope === 'all' ? 'bg-accent text-white' : 'bg-surface-raised text-gray-300 hover:bg-gray-600'"
-                                            @click="panel.scope = 'all'">All Pages</button>
-                                        <button class="px-3 py-1.5 rounded text-xs transition"
-                                            :class="panel.scope === 'pages' ? 'bg-accent text-white' : 'bg-surface-raised text-gray-300 hover:bg-gray-600'"
-                                            @click="panel.scope = 'pages'">First N Pages</button>
-                                        <button class="px-3 py-1.5 rounded text-xs transition"
-                                            :class="panel.scope === 'topics' ? 'bg-accent text-white' : 'bg-surface-raised text-gray-300 hover:bg-gray-600'"
-                                            @click="panel.scope = 'topics'">Specific Topics</button>
-                                    </div>
-                                    <div x-show="panel.scope !== 'topics'">
-                                        <label class="text-xs text-gray-400 block mb-1.5">Boards</label>
-                                        <div class="flex flex-wrap gap-2">
-                                            <button class="relative group px-3 py-1.5 rounded text-xs transition"
-                                                :class="panel.boards.main ? 'bg-accent text-white' : 'bg-surface-raised text-gray-300 hover:bg-gray-600'"
-                                                @click="panel.toggleBoard('main')">
-                                                <span class="pointer-events-none absolute bottom-full left-1/2 z-50 mb-1 -translate-x-1/2 whitespace-nowrap rounded bg-gray-900 px-2 py-0.5 text-[10px] font-medium text-white opacity-0 shadow-lg transition-opacity duration-0 group-hover:opacity-100">Main mods board (board 8)</span>
-                                                Main (8)</button>
-                                            <button class="relative group px-3 py-1.5 rounded text-xs transition"
-                                                :class="panel.boards.lesser ? 'bg-accent text-white' : 'bg-surface-raised text-gray-300 hover:bg-gray-600'"
-                                                @click="panel.toggleBoard('lesser')">
-                                                <span class="pointer-events-none absolute bottom-full left-1/2 z-50 mb-1 -translate-x-1/2 whitespace-nowrap rounded bg-gray-900 px-2 py-0.5 text-[10px] font-medium text-white opacity-0 shadow-lg transition-opacity duration-0 group-hover:opacity-100">Lesser mods board (board 3) — capped at 20 pages</span>
-                                                Lesser (3)</button>
-                                            <button class="relative group px-3 py-1.5 rounded text-xs transition"
-                                                :class="panel.boards.libraries ? 'bg-accent text-white' : 'bg-surface-raised text-gray-300 hover:bg-gray-600'"
-                                                @click="panel.toggleBoard('libraries')">
-                                                <span class="pointer-events-none absolute bottom-full left-1/2 z-50 mb-1 -translate-x-1/2 whitespace-nowrap rounded bg-gray-900 px-2 py-0.5 text-[10px] font-medium text-white opacity-0 shadow-lg transition-opacity duration-0 group-hover:opacity-100">Modding Resources board (board 9)</span>
-                                                Libraries (9)</button>
-                                        </div>
-                                    </div>
-                                    <div x-show="panel.scope === 'pages'" class="flex items-center gap-2">
-                                        <label class="text-xs text-gray-400">Pages:</label>
-                                        <input type="number" min="1" max="34" x-model.number="panel.maxPages"
-                                            class="w-20 bg-surface border border-gray-600 rounded px-2 py-1 text-sm">
-                                    </div>
-                                    <div x-show="panel.scope === 'topics'">
-                                        <label class="text-xs text-gray-400 block mb-1">Topic IDs (comma-separated):</label>
-                                        <input type="text" x-model="panel.topicIdsStr" placeholder="e.g. 30407, 25296"
-                                            class="w-full bg-surface border border-gray-600 rounded px-2 py-1 text-sm">
-                                    </div>
-                                </div>
-                                <div class="flex gap-2">
-                                    <button @click="panel.startScrape()"
-                                        :disabled="panel.status.isScraping"
-                                        class="px-4 py-1.5 bg-accent hover:bg-accent-hover text-white rounded text-sm font-medium transition disabled:opacity-40 disabled:cursor-not-allowed">
-                                        Scrape Now
-                                    </button>
-                                    <button @click="panel.stopScrape()" x-show="panel.status.isScraping"
-                                        class="px-4 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded text-sm font-medium transition">
-                                        Stop
-                                    </button>
-                                </div>
-                                <p class="text-xs text-gray-500 mt-2" x-show="panel.message" x-text="panel.message"></p>
-                            </div>
-
-                            <!-- Scrape Timing -->
-                            <div class="bg-surface-alt rounded-lg border border-gray-700 p-4">
-                                <h3 class="text-sm font-semibold text-white mb-3">Scrape Timing (All Scrapes)</h3>
-                                <div class="flex flex-wrap items-end gap-3 mb-3">
-                                    <div>
-                                        <label class="text-[10px] text-gray-400 block mb-1">Page delay (ms)</label>
-                                        <div class="panel-number-wrap">
-                                            <input type="number" min="500" step="100" x-model.number="panel.config.delayBetweenPagesMs"
-                                                @change="panel.saveConfig({ silent: true })"
-                                                class="panel-number-input">
-                                            <div class="panel-stepper">
-                                                <button type="button" class="relative group panel-stepper-btn"
-                                                    @click="panel.config.delayBetweenPagesMs = Math.max(500, Number(panel.config.delayBetweenPagesMs || 500) + 100); panel.saveConfig({ silent: true })">
-                                                    <span class="pointer-events-none absolute bottom-full left-1/2 z-50 mb-1 -translate-x-1/2 whitespace-nowrap rounded bg-gray-900 px-2 py-0.5 text-[10px] font-medium text-white opacity-0 shadow-lg transition-opacity duration-0 group-hover:opacity-100">Increase</span>
-                                                    <svg class="w-2.5 h-2.5" viewBox="0 0 20 20" fill="currentColor"><path d="M5 12l5-5 5 5H5z"/></svg>
-                                                </button>
-                                                <button type="button" class="relative group panel-stepper-btn"
-                                                    @click="panel.config.delayBetweenPagesMs = Math.max(500, Number(panel.config.delayBetweenPagesMs || 500) - 100); panel.saveConfig({ silent: true })">
-                                                    <span class="pointer-events-none absolute bottom-full left-1/2 z-50 mb-1 -translate-x-1/2 whitespace-nowrap rounded bg-gray-900 px-2 py-0.5 text-[10px] font-medium text-white opacity-0 shadow-lg transition-opacity duration-0 group-hover:opacity-100">Decrease</span>
-                                                    <svg class="w-2.5 h-2.5" viewBox="0 0 20 20" fill="currentColor"><path d="M5 8l5 5 5-5H5z"/></svg>
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <label class="text-[10px] text-gray-400 block mb-1">Topic delay (ms)</label>
-                                        <div class="panel-number-wrap">
-                                            <input type="number" min="500" step="100" x-model.number="panel.config.delayBetweenTopicsMs"
-                                                @change="panel.saveConfig({ silent: true })"
-                                                class="panel-number-input">
-                                            <div class="panel-stepper">
-                                                <button type="button" class="relative group panel-stepper-btn"
-                                                    @click="panel.config.delayBetweenTopicsMs = Math.max(500, Number(panel.config.delayBetweenTopicsMs || 500) + 100); panel.saveConfig({ silent: true })">
-                                                    <span class="pointer-events-none absolute bottom-full left-1/2 z-50 mb-1 -translate-x-1/2 whitespace-nowrap rounded bg-gray-900 px-2 py-0.5 text-[10px] font-medium text-white opacity-0 shadow-lg transition-opacity duration-0 group-hover:opacity-100">Increase</span>
-                                                    <svg class="w-2.5 h-2.5" viewBox="0 0 20 20" fill="currentColor"><path d="M5 12l5-5 5 5H5z"/></svg>
-                                                </button>
-                                                <button type="button" class="relative group panel-stepper-btn"
-                                                    @click="panel.config.delayBetweenTopicsMs = Math.max(500, Number(panel.config.delayBetweenTopicsMs || 500) - 100); panel.saveConfig({ silent: true })">
-                                                    <span class="pointer-events-none absolute bottom-full left-1/2 z-50 mb-1 -translate-x-1/2 whitespace-nowrap rounded bg-gray-900 px-2 py-0.5 text-[10px] font-medium text-white opacity-0 shadow-lg transition-opacity duration-0 group-hover:opacity-100">Decrease</span>
-                                                    <svg class="w-2.5 h-2.5" viewBox="0 0 20 20" fill="currentColor"><path d="M5 8l5 5 5-5H5z"/></svg>
-                                                </button>
+                                <!-- New Data Auto-Scrape Config -->
+                                <div class="bg-surface-alt rounded-lg border border-gray-700 p-4">
+                                    <h3 class="text-sm font-semibold text-white mb-3">New Data Auto-Scrape</h3>
+                                    <p class="text-xs text-gray-400 mb-3">
+                                        New data means brand-new topic IDs or existing topics whose board Last post value changed.
+                                        Auto-scrape always uses this rule.
+                                    </p>
+                                    <div class="flex flex-wrap items-end gap-3 mb-3">
+                                        <div>
+                                            <label class="text-[10px] text-gray-400 block mb-1">Interval (hrs, 0=off)</label>
+                                            <div class="panel-number-wrap">
+                                                <input type="number" min="0" step="0.5" x-model.number="panel.config.autoScrapeIntervalHours"
+                                                    @change="panel.saveConfig({ silent: true })"
+                                                    class="panel-number-input">
+                                                <div class="panel-stepper">
+                                                    <button type="button" class="relative group panel-stepper-btn"
+                                                        @click="panel.config.autoScrapeIntervalHours = Math.max(0, Number(panel.config.autoScrapeIntervalHours || 0) + 0.5); panel.saveConfig({ silent: true })">
+                                                        <span class="pointer-events-none absolute bottom-full left-1/2 z-50 mb-1 -translate-x-1/2 whitespace-nowrap rounded bg-gray-900 px-2 py-0.5 text-[10px] font-medium text-white opacity-0 shadow-lg transition-opacity duration-0 group-hover:opacity-100">Increase</span>
+                                                        <svg class="w-2.5 h-2.5" viewBox="0 0 20 20" fill="currentColor"><path d="M5 12l5-5 5 5H5z"/></svg>
+                                                    </button>
+                                                    <button type="button" class="relative group panel-stepper-btn"
+                                                        @click="panel.config.autoScrapeIntervalHours = Math.max(0, Number(panel.config.autoScrapeIntervalHours || 0) - 0.5); panel.saveConfig({ silent: true })">
+                                                        <span class="pointer-events-none absolute bottom-full left-1/2 z-50 mb-1 -translate-x-1/2 whitespace-nowrap rounded bg-gray-900 px-2 py-0.5 text-[10px] font-medium text-white opacity-0 shadow-lg transition-opacity duration-0 group-hover:opacity-100">Decrease</span>
+                                                        <svg class="w-2.5 h-2.5" viewBox="0 0 20 20" fill="currentColor"><path d="M5 8l5 5 5-5H5z"/></svg>
+                                                    </button>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-                                <p class="text-[10px] text-gray-500 mb-3">
-                                    Page delay waits between board pages. Topic delay waits between opening topic threads.
-                                    Both apply to manual and auto scrapes.
-                                </p>
-                            </div>
 
-                            <!-- Config -->
-                            <div class="bg-surface-alt rounded-lg border border-gray-700 p-4">
-                                <h3 class="text-sm font-semibold text-white mb-3">New Data Auto-Scrape</h3>
-                                <p class="text-xs text-gray-400 mb-3">
-                                    New data means brand-new topic IDs or existing topics whose board Last post value changed.
-                                    Auto-scrape always uses this rule.
-                                </p>
-                                <div class="flex flex-wrap items-end gap-3 mb-3">
-                                    <div>
-                                        <label class="text-[10px] text-gray-400 block mb-1">Interval (hrs, 0=off)</label>
-                                        <div class="panel-number-wrap">
-                                            <input type="number" min="0" step="0.5" x-model.number="panel.config.autoScrapeIntervalHours"
-                                                @change="panel.saveConfig({ silent: true })"
-                                                class="panel-number-input">
-                                            <div class="panel-stepper">
-                                                <button type="button" class="relative group panel-stepper-btn"
-                                                    @click="panel.config.autoScrapeIntervalHours = Math.max(0, Number(panel.config.autoScrapeIntervalHours || 0) + 0.5); panel.saveConfig({ silent: true })">
-                                                    <span class="pointer-events-none absolute bottom-full left-1/2 z-50 mb-1 -translate-x-1/2 whitespace-nowrap rounded bg-gray-900 px-2 py-0.5 text-[10px] font-medium text-white opacity-0 shadow-lg transition-opacity duration-0 group-hover:opacity-100">Increase</span>
-                                                    <svg class="w-2.5 h-2.5" viewBox="0 0 20 20" fill="currentColor"><path d="M5 12l5-5 5 5H5z"/></svg>
-                                                </button>
-                                                <button type="button" class="relative group panel-stepper-btn"
-                                                    @click="panel.config.autoScrapeIntervalHours = Math.max(0, Number(panel.config.autoScrapeIntervalHours || 0) - 0.5); panel.saveConfig({ silent: true })">
-                                                    <span class="pointer-events-none absolute bottom-full left-1/2 z-50 mb-1 -translate-x-1/2 whitespace-nowrap rounded bg-gray-900 px-2 py-0.5 text-[10px] font-medium text-white opacity-0 shadow-lg transition-opacity duration-0 group-hover:opacity-100">Decrease</span>
-                                                    <svg class="w-2.5 h-2.5" viewBox="0 0 20 20" fill="currentColor"><path d="M5 8l5 5 5-5H5z"/></svg>
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
                             </div>
+                        </div><!-- Forum scrape collapsible (Playwright installed) -->
 
-                        </div>
-                    </div><!-- Forum scrape collapsible -->
+                    </div><!-- Forum scraping section -->
 
                     <!-- Display Settings -->
                     <div class="bg-surface-alt rounded-lg border border-gray-700 p-4">

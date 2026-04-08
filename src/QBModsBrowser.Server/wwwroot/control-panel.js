@@ -17,6 +17,12 @@ function createPanelState() {
         _pollTimer: null,
         extCache: { fileCount: 0, totalSizeFormatted: '—', loaded: false },
         extCacheClearing: false,
+        // null = not yet checked; true/false = result of playwright-status check.
+        playwrightInstalled: null,
+        // Remote bundle metadata: when the scraped data was last updated and when this app last fetched it.
+        remoteDataInfo: { updatedAt: null, lastFetched: null },
+        // Live install progress state.
+        playwrightInstall: { running: false, succeeded: null, lines: [], _pollTimer: null },
 
         // Log pane state and methods are maintained in control-panel-log.js.
         ...buildLogPaneMethods(),
@@ -29,8 +35,13 @@ function createPanelState() {
         },
 
         // Loads panel data and starts status refresh and log polling while panel is open.
+        // fetchStatus() also updates playwrightInstalled so no separate playwright check is needed here.
         async refresh() {
-            await Promise.all([this.fetchStatus(), this.fetchConfig(), this.fetchExtCacheStats(), this.fetchLogs(), this.fetchLogOptions()]);
+            await Promise.all([
+                this.fetchStatus(), this.fetchConfig(), this.fetchExtCacheStats(),
+                this.fetchLogs(), this.fetchLogOptions(),
+                this.fetchRemoteDataInfo()
+            ]);
             if (!this._pollTimer) {
                 this._pollTimer = setInterval(() => {
                     if (this.open) {
@@ -41,11 +52,16 @@ function createPanelState() {
             }
         },
 
-        // Retrieves current scraper state for the control panel.
+        // Retrieves current scraper state and Playwright installation status.
+        // isPlaywrightInstalled is embedded in the status response so it is always fresh
+        // from the very first poll, even before the panel is opened.
         async fetchStatus() {
             try {
                 const res = await fetch('/api/scraper/status');
-                this.status = await res.json();
+                const data = await res.json();
+                this.status = data;
+                if (data.isPlaywrightInstalled !== undefined)
+                    this.playwrightInstalled = data.isPlaywrightInstalled;
             } catch (_) {}
         },
 
@@ -77,6 +93,62 @@ function createPanelState() {
             } catch (_) {
                 this.extCache = { fileCount: 0, totalSizeFormatted: '—', loaded: true };
             }
+        },
+
+        // Checks whether Playwright Chromium is installed and updates playwrightInstalled.
+        async fetchPlaywrightStatus() {
+            try {
+                const res = await fetch('/api/scraper/playwright-status');
+                const data = await res.json();
+                this.playwrightInstalled = data.isInstalled;
+            } catch (_) {}
+        },
+
+        // Fetches remote bundle metadata (when the scraped data was last updated and last fetched).
+        async fetchRemoteDataInfo() {
+            try {
+                const res = await fetch('/api/scraper/remote-data-info');
+                this.remoteDataInfo = await res.json();
+            } catch (_) {}
+        },
+
+        // Starts a Playwright Chromium installation and polls for live progress until complete.
+        async installPlaywright() {
+            if (this.playwrightInstall.running) return;
+            this.playwrightInstall.lines = [];
+            this.playwrightInstall.succeeded = null;
+            try {
+                const res = await fetch('/api/scraper/playwright/install', { method: 'POST' });
+                if (!res.ok) {
+                    const err = await res.json().catch(() => ({}));
+                    this.playwrightInstall.lines = [err.error || 'Failed to start installation'];
+                    return;
+                }
+                this.playwrightInstall.running = true;
+                this._pollPlaywrightInstall();
+            } catch (e) {
+                this.playwrightInstall.lines = ['Error: ' + e.message];
+            }
+        },
+
+        // Polls install progress every 1.5 s until the backend reports completion.
+        _pollPlaywrightInstall() {
+            if (this.playwrightInstall._pollTimer) clearInterval(this.playwrightInstall._pollTimer);
+            this.playwrightInstall._pollTimer = setInterval(async () => {
+                try {
+                    const res = await fetch('/api/scraper/playwright/install-status');
+                    const data = await res.json();
+                    this.playwrightInstall.lines = data.lines || [];
+                    this.playwrightInstall.running = data.running;
+                    this.playwrightInstall.succeeded = data.succeeded;
+                    if (!data.running) {
+                        clearInterval(this.playwrightInstall._pollTimer);
+                        this.playwrightInstall._pollTimer = null;
+                        // Re-check installation state so the UI switches to the scrape controls.
+                        await this.fetchPlaywrightStatus();
+                    }
+                } catch (_) {}
+            }, 1500);
         },
 
         // Deletes all cached external images and refreshes the stats display.

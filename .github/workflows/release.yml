@@ -15,6 +15,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          # Needed so we can list prior r* tags and build a range for release notes.
+          fetch-depth: 0
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
@@ -32,15 +35,32 @@ jobs:
       - name: Build release zip
         run: powershell -NoProfile -ExecutionPolicy Bypass -File "bump or publish helpers/publish.ps1"
 
-      - name: Get commit title
+      # Lists one bullet per commit subject from the previous r* tag (exclusive) to this tag (inclusive).
+      - name: Build release notes since previous r* tag
         id: meta
-        run: echo "commit_title=$(git log -1 --format=%s ${{ github.sha }})" >> "$GITHUB_OUTPUT"
         shell: bash
+        run: |
+          set -euo pipefail
+          current="${{ github.ref_name }}"
+          prev="$(git tag -l 'r*' --sort=-creatordate | grep -vxF "$current" | head -n1 || true)"
+          if [ -n "$prev" ]; then
+            notes="$(git log "${prev}..${GITHUB_SHA}" --reverse --format='- %s')"
+          else
+            notes=""
+          fi
+          if [ -z "$notes" ]; then
+            notes="$(git log -1 --format='- %s' "${GITHUB_SHA}")"
+          fi
+          {
+            echo "release_body<<RELEASE_BODY_EOF"
+            printf '%s\n' "$notes"
+            echo "RELEASE_BODY_EOF"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
           name: ${{ github.ref_name }}
-          body: ${{ steps.meta.outputs.commit_title }}
+          body: ${{ steps.meta.outputs.release_body }}
           files: QBMBAMM-Windows.zip

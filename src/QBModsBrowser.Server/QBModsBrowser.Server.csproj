@@ -10,7 +10,7 @@
     <!-- Published exe and process name used throughout the build script. -->
     <AssemblyName>QBMBAMM</AssemblyName>
     <!-- Single source of truth for the app version; bumped by bump or publish helpers/bump-version.ps1 (bump-minor.bat / bump-patch.bat). -->
-    <Version>2.2.6</Version>
+    <Version>2.2.7</Version>
   </PropertyGroup>
 
   <ItemGroup>
@@ -27,7 +27,25 @@
     <ProjectReference Include="..\QBModsBrowser.Scraper\QBModsBrowser.Scraper.csproj" />
   </ItemGroup>
 
+  <!--
+    The single-file bundler absorbs node.exe (a Windows PE) because it looks like a native
+    binary. It gets extracted to a temp dir at runtime instead of sitting next to the exe,
+    so Playwright never finds it via PLAYWRIGHT_DRIVER_SEARCH_PATH.
+    This target runs in the Server project just before _ComputeFilesToBundle and marks every
+    file under .playwright\ as ExcludeFromSingleFile=true so they are published as separate
+    files alongside the exe, not bundled into it.
+  -->
+  <Target Name="ExcludePlaywrightFilesFromSingleFile" BeforeTargets="_ComputeFilesToBundle">
+    <ItemGroup>
+      <ResolvedFileToPublish Update="@(ResolvedFileToPublish)"
+          Condition="$([System.String]::Copy('%(RelativePath)').StartsWith('.playwright'))">
+        <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+      </ResolvedFileToPublish>
+    </ItemGroup>
+  </Target>
+
 </Project>
+
 
 
 

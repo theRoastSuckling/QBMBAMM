@@ -10,7 +10,7 @@
     <!-- Published exe and process name used throughout the build script. -->
     <AssemblyName>QBMBAMM</AssemblyName>
     <!-- Single source of truth for the app version; bumped by bump or publish helpers/bump-version.ps1 (bump-minor.bat / bump-patch.bat). -->
-    <Version>2.2.7</Version>
+    <Version>2.2.8</Version>
   </PropertyGroup>
 
   <ItemGroup>
@@ -45,6 +45,7 @@
   </Target>
 
 </Project>
+
 
 
 

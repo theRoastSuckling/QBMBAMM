@@ -67,13 +67,22 @@ public class ScraperEngine : IAsyncDisposable
             await _context.AddInitScriptAsync(
                 "Object.defineProperty(navigator, 'webdriver', { get: () => undefined });");
 
-            // Hard boundary: scraper must never request non-forum hosts.
+            // Hard boundary: scraper must never request non-forum hosts,
+            // except challenges.cloudflare.com which must be reachable for the
+            // Cloudflare bot-check to complete on a fresh browser profile.
             await _context.RouteAsync("**/*", async route =>
             {
                 var requestUrl = route.Request.Url;
                 if (requestUrl.StartsWith("data:", StringComparison.OrdinalIgnoreCase) ||
                     requestUrl.StartsWith("about:", StringComparison.OrdinalIgnoreCase) ||
                     requestUrl.StartsWith("blob:", StringComparison.OrdinalIgnoreCase))
+                {
+                    await route.ContinueAsync();
+                    return;
+                }
+
+                if (Uri.TryCreate(requestUrl, UriKind.Absolute, out var uri) &&
+                    uri.Host.Equals("challenges.cloudflare.com", StringComparison.OrdinalIgnoreCase))
                 {
                     await route.ContinueAsync();
                     return;

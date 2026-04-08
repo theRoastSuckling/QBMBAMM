@@ -25,6 +25,7 @@ publish/
 *.lnk
 *.exe
 QBMBAMM-win-x64*.zip
+QBMBAMM-Windows.zip
 
 ## OS
 Thumbs.db

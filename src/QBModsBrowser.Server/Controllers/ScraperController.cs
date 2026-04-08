@@ -217,13 +217,6 @@ public class ScraperController : ControllerBase
         return Ok(new { message = $"Backfilled {updated} thumbnails", updated });
     }
 
-    // Returns whether Playwright Chromium is installed on this machine.
-    [HttpGet("playwright-status")]
-    public IActionResult GetPlaywrightStatus()
-    {
-        return Ok(new { isInstalled = _playwright.IsInstalled() });
-    }
-
     // Starts a Playwright Chromium installation in the background; returns 409 if already running.
     [HttpPost("playwright/install")]
     public IActionResult StartPlaywrightInstall()

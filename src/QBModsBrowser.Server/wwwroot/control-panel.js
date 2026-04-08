@@ -17,7 +17,7 @@ function createPanelState() {
         _pollTimer: null,
         extCache: { fileCount: 0, totalSizeFormatted: '—', loaded: false },
         extCacheClearing: false,
-        // null = not yet checked; true/false = result of playwright-status check.
+        // null = not yet known; set from isPlaywrightInstalled in the scraper status response.
         playwrightInstalled: null,
         // Remote bundle metadata: when the scraped data was last updated and when this app last fetched it.
         remoteDataInfo: { updatedAt: null, lastFetched: null },
@@ -95,15 +95,6 @@ function createPanelState() {
             }
         },
 
-        // Checks whether Playwright Chromium is installed and updates playwrightInstalled.
-        async fetchPlaywrightStatus() {
-            try {
-                const res = await fetch('/api/scraper/playwright-status');
-                const data = await res.json();
-                this.playwrightInstalled = data.isInstalled;
-            } catch (_) {}
-        },
-
         // Fetches remote bundle metadata (when the scraped data was last updated and last fetched).
         async fetchRemoteDataInfo() {
             try {
@@ -145,7 +136,7 @@ function createPanelState() {
                         clearInterval(this.playwrightInstall._pollTimer);
                         this.playwrightInstall._pollTimer = null;
                         // Re-check installation state so the UI switches to the scrape controls.
-                        await this.fetchPlaywrightStatus();
+                        await this.fetchStatus();
                     }
                 } catch (_) {}
             }, 1500);

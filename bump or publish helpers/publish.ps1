@@ -89,11 +89,26 @@ if (Test-Path -LiteralPath $sourceDataPath) {
 # -Force replaces an existing zip; without it Compress-Archive errors if the file is already there.
 Compress-Archive -Path (Join-Path $publishDir "*") -DestinationPath $zipPath -CompressionLevel Optimal -Force
 
+# --- Create a desktop-style shortcut at the repo root pointing to the published exe ---
+# Makes it easy to launch the latest published build directly from the project folder.
+$shortcutPath = Join-Path $repoRoot "QBMBAMM.lnk"
+$iconPath     = Join-Path $repoRoot "QBSSMB4.ico"
+$wsh = New-Object -ComObject WScript.Shell
+$shortcut = $wsh.CreateShortcut($shortcutPath)
+$shortcut.TargetPath      = $exePath
+$shortcut.WorkingDirectory = $publishDir
+if (Test-Path -LiteralPath $iconPath) {
+    $shortcut.IconLocation = "$iconPath,0"
+}
+$shortcut.Description = "QBMBAMM $newVersion"
+$shortcut.Save()
+
 # --- Summary ---
 Write-Host ""
 Write-Host "Done."
 Write-Host "Version: $newVersion"
 Write-Host "Executable: $exePath"
+Write-Host "Shortcut:   $shortcutPath"
 Write-Host "Zip: $zipPath"
 if (Test-Path -LiteralPath $sourceDataPath) {
     Write-Host "Bundled data: $sourceDataPath (excluding browser-profile, external-images)"

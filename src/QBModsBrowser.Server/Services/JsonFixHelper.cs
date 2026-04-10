@@ -51,18 +51,42 @@ public static partial class JsonFixHelper
         return JsonSerializer.Deserialize<T>(fixed_, options ?? DefaultJsonOptions);
     }
 
-    // Removes full-line comments common in mod files while preserving URL slashes.
-    // Handles both // and # comment styles used by Starsector mod_info.json files.
+    // Removes both full-line and inline comments from each line, tracking string context so
+    // // URLs inside strings and # chars inside values are preserved correctly.
     private static string RemoveLineComments(string text)
     {
         var lines = text.Split('\n');
         for (int i = 0; i < lines.Length; i++)
-        {
-            var trimmed = lines[i].TrimStart();
-            if (trimmed.StartsWith("//") || trimmed.StartsWith("#"))
-                lines[i] = "";
-        }
+            lines[i] = StripLineComment(lines[i]);
         return string.Join('\n', lines);
+    }
+
+    // Strips // and # comments from a single line.
+    // Full-line comments (line starts with comment token after whitespace) are blanked entirely.
+    // Inline comments that appear outside a JSON string literal are truncated at the token.
+    private static string StripLineComment(string line)
+    {
+        var trimmed = line.TrimStart();
+        if (trimmed.StartsWith("//") || trimmed.StartsWith("#"))
+            return "";
+
+        bool inString = false;
+        bool escape = false;
+        for (int i = 0; i < line.Length; i++)
+        {
+            char c = line[i];
+            if (escape) { escape = false; continue; }
+            if (c == '\\' && inString) { escape = true; continue; }
+            if (c == '"') { inString = !inString; continue; }
+            if (!inString)
+            {
+                if (c == '#')
+                    return line[..i].TrimEnd();
+                if (c == '/' && i + 1 < line.Length && line[i + 1] == '/')
+                    return line[..i].TrimEnd();
+            }
+        }
+        return line;
     }
 
     // Finds trailing commas before closing braces/brackets for JSON compatibility.

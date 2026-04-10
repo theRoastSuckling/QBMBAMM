@@ -192,8 +192,16 @@ public partial class AssumedDownloadService
             .ToDictionary(kvp => kvp.Key, kvp => kvp.Value.Candidates);
     }
 
-    // Populates the in-memory cache from an imported bundle, using an empty fingerprint so that
-    // a real ResolveAsync call for the same topic will still overwrite with freshly resolved data.
+    // Sentinel used as LinkFingerprint for bundle-imported candidates so HasCachedCandidates
+    // returns true immediately (making the list view show download buttons without a detail visit),
+    // while still being distinct from any real computed fingerprint so ResolveAsync overwrites it
+    // on first use with freshly resolved data.
+    private const string BundleImportFingerprint = "bundle";
+
+    // Populates the in-memory cache from an imported bundle. Uses a non-empty sentinel fingerprint
+    // so imported candidates are visible to HasCachedCandidates and the list view.
+    // A real ResolveAsync call will still overwrite these entries because the sentinel never matches
+    // a computed link fingerprint.
     public void ImportCandidates(Dictionary<int, List<AssumedDownloadCandidate>> data)
     {
         foreach (var (topicId, candidates) in data)
@@ -203,7 +211,7 @@ public partial class AssumedDownloadService
                 Candidates = candidates,
                 ResolvedAt = DateTime.UtcNow,
                 Schema = AssumedDownloadCacheSchema,
-                LinkFingerprint = ""
+                LinkFingerprint = BundleImportFingerprint
             };
         }
         _log.Debug("Imported {Count} assumed-download entries from bundle", data.Count);

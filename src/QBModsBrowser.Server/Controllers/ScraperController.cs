@@ -8,25 +8,28 @@ namespace QBModsBrowser.Server.Controllers;
 
 [ApiController]
 [Route("api/scraper")]
-// Exposes scraper status, start/stop, config, log, Playwright install, and remote-data-info endpoints for the UI control panel.
+// Exposes scraper status, start/stop, config, log, Playwright install, remote-data-info, and force-refresh endpoints for the UI control panel.
 public class ScraperController : ControllerBase
 {
     private readonly ScraperOrchestrator _orchestrator;
     private readonly JsonDataStore _store;
     private readonly IConfiguration _config;
     private readonly PlaywrightService _playwright;
+    private readonly ForumDataFetchService _forumFetch;
 
-    // Accepts PlaywrightService to support browser detection and install endpoints.
+    // Accepts ForumDataFetchService to support the force-refresh-remote-data endpoint.
     public ScraperController(
         ScraperOrchestrator orchestrator,
         JsonDataStore store,
         IConfiguration config,
-        PlaywrightService playwright)
+        PlaywrightService playwright,
+        ForumDataFetchService forumFetch)
     {
         _orchestrator = orchestrator;
         _store = store;
         _config = config;
         _playwright = playwright;
+        _forumFetch = forumFetch;
     }
 
     // Returns scraper state, stats, and Playwright installation status.
@@ -240,6 +243,15 @@ public class ScraperController : ControllerBase
             exitCode = s.ExitCode,
             lines = s.Lines
         });
+    }
+
+    // Triggers an immediate re-download of the remote forum bundle, bypassing the configured TTL.
+    // Used from the control panel when the user wants fresh data without waiting for the cooldown.
+    [HttpPost("force-refresh-remote-data")]
+    public async Task<IActionResult> ForceRefreshRemoteData()
+    {
+        await _forumFetch.EnsureDataFreshAsync(force: true);
+        return Ok(new { success = true });
     }
 
     // Returns the UpdatedAt timestamp from the last successfully fetched remote bundle and

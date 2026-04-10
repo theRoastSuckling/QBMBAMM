@@ -170,7 +170,8 @@ internal static class Program
             sp.GetRequiredService<JsonDataStore>(),
             sp.GetRequiredService<AssumedDownloadService>(),
             sp.GetRequiredService<ForumDataBundler>(),
-            sp.GetRequiredService<ForumDataPublisher>()));
+            sp.GetRequiredService<ForumDataPublisher>(),
+            sp.GetRequiredService<PlaywrightService>()));
         builder.Services.AddHostedService(sp => sp.GetRequiredService<ScraperOrchestrator>());
         builder.Services.AddSingleton(appConfig);
         builder.Services.AddSingleton(managerConfig);

@@ -113,6 +113,10 @@
                                     class="px-3 py-1.5 rounded text-xs transition bg-surface-raised text-gray-300 hover:bg-gray-600">
                                     Refresh ModRepo
                                 </button>
+                                <button @click="forceRefreshForumData()"
+                                    class="px-3 py-1.5 rounded text-xs transition bg-surface-raised text-gray-300 hover:bg-gray-600">
+                                    Refresh Forum Data
+                                </button>
                             </div>
                             <p class="text-[10px] text-gray-500" x-show="managerMessage" x-text="managerMessage"></p>
                         </div>

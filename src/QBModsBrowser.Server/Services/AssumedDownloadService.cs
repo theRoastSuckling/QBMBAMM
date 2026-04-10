@@ -19,7 +19,7 @@ public partial class AssumedDownloadService
     private static readonly TimeSpan CacheTtl = TimeSpan.MaxValue;
 
     /// <summary>Bump when assumed-download resolution changes so disk cache is not reused with stale data.</summary>
-    private const int AssumedDownloadCacheSchema = 7;
+    private const int AssumedDownloadCacheSchema = 8;
 
     private static readonly JsonSerializerOptions JsonOpts = FormatHelper.IndentedCamelCase;
 
@@ -809,8 +809,8 @@ public partial class AssumedDownloadService
         }
     }
 
-    // Matches GitHub direct release asset URLs.
-    [GeneratedRegex(@"github\.com/[^/]+/[^/]+/(?:releases/download/[^/]+/.+|raw/[^?#]+\.(?:zip|rar|7z|tar\.gz|tar|bz2|gz|xz)|archive/(?:refs/tags/)?[^?#]+\.(?:zip|tar\.gz|tar))", RegexOptions.IgnoreCase)]
+    // Matches GitHub direct release asset URLs, including the stable /releases/latest/download/ form.
+    [GeneratedRegex(@"github\.com/[^/]+/[^/]+/(?:releases/(?:download/[^/]+|latest/download)/.+|raw/[^?#]+\.(?:zip|rar|7z|tar\.gz|tar|bz2|gz|xz)|archive/(?:refs/tags/)?[^?#]+\.(?:zip|tar\.gz|tar))", RegexOptions.IgnoreCase)]
     private static partial Regex GitHubDirectAssetRegex();
 
     // Matches GitHub releases pages that may require API lookup.

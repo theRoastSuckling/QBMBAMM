@@ -18,13 +18,17 @@ public class ForumDataBundler
 
     // Packs the current data/ folder contents into a single portable bundle.
     // LocalPath on image refs is stripped so the bundle contains no machine-specific paths.
+    // All collections are sorted by TopicId for a stable JSON output (avoids noisy git diffs).
     public async Task<ForumDataBundle> CreateBundleAsync(JsonDataStore store, AssumedDownloadService assumed)
     {
         _log.Information("Creating forum data bundle...");
 
-        var index = await store.LoadIndex();
+        var rawIndex = await store.LoadIndex();
+        // Sort by TopicId so the bundle JSON is stable across runs (avoids noisy git diffs).
+        var index = rawIndex.OrderBy(s => s.TopicId).ToList();
         var details = new Dictionary<int, ModDetail>(index.Count);
 
+        // Index is already sorted, so details keys will be inserted in ascending TopicId order.
         foreach (var summary in index)
         {
             var detail = await store.LoadDetail(summary.TopicId);
@@ -37,7 +41,11 @@ public class ForumDataBundler
             details[summary.TopicId] = detail;
         }
 
-        var assumedDownloads = assumed.GetAllCandidates();
+        // Sort by key so the JSON output is deterministic.
+        var rawAssumed = assumed.GetAllCandidates();
+        var assumedDownloads = rawAssumed
+            .OrderBy(kvp => kvp.Key)
+            .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
 
         var updatedAt = index.Count > 0
             ? index.Max(s => s.ScrapedAt)

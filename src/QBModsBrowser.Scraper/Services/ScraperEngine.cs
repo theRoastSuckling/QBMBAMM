@@ -106,6 +106,9 @@ public class ScraperEngine : IAsyncDisposable
             var htmlProcessor = new HtmlProcessor(_log);
             var existingIndex = await _store.LoadIndex();
             var indexMap = existingIndex.ToDictionary(m => m.TopicId);
+            // Snapshot meaningful fields before any in-memory mutations (category enrichment etc.)
+            var preScrapeSnapshot = existingIndex.ToDictionary(m => m.TopicId, SnapshotMeaningfulFields);
+            var meaningfullyChangedIds = new List<int>();
             CurrentJob.CurrentPhase = "Mod index (topic 177)";
             var modIndex = await modIndexCategoryScraper.Scrape(ct, page);
             foreach (var existing in indexMap.Values)
@@ -269,8 +272,9 @@ public class ScraperEngine : IAsyncDisposable
                 if (libraryTopicIds.Contains(summary.TopicId) && !mainTopicIds.Contains(summary.TopicId))
                     summary.Category = ForumConstants.LibraryCategory;
 
-                // Board-3 topics are never in the mod index; guess a category from the title.
-                if (!summary.InModIndex && summary.SourceBoard == 3)
+                // Any uncategorized topic (board-3 is never indexed; main-board mods may have been removed
+                // from the mod index) gets a title-keyword guess as a fallback.
+                if (!summary.InModIndex)
                     summary.Category = ForumConstants.GuessCategoryFromTitle(summary.Title);
 
                 CurrentJob.CurrentItem = summary.Title.Length > 0 ? summary.Title : $"Topic {summary.TopicId}";
@@ -314,6 +318,8 @@ public class ScraperEngine : IAsyncDisposable
                 }
 
                 indexMap[summary.TopicId] = summary;
+                if (!preScrapeSnapshot.TryGetValue(summary.TopicId, out var prevSnap) || HasMeaningfulChanges(summary, prevSnap))
+                    meaningfullyChangedIds.Add(summary.TopicId);
                 CurrentJob.ProcessedTopics++;
             }
 
@@ -323,6 +329,8 @@ public class ScraperEngine : IAsyncDisposable
 
             var finalIndex = indexMap.Values.OrderByDescending(m => m.ScrapedAt).ToList();
             await _store.SaveIndex(finalIndex);
+
+            LogMeaningfulChanges(meaningfullyChangedIds, modSummaries.Count);
 
             CurrentJob.State = ScrapeState.Completed;
             CurrentJob.FinishedAt = DateTime.UtcNow;
@@ -364,6 +372,35 @@ public class ScraperEngine : IAsyncDisposable
         Duration = (CurrentJob.FinishedAt ?? DateTime.UtcNow) - startTime,
         ErrorMessage = errorMessage
     };
+
+    // Captures fields used for post-scrape change detection; excludes ScrapedAt, Views, Replies, LastPostDate, and LastPostBy.
+    private static MeaningfulSummarySnapshot SnapshotMeaningfulFields(ModSummary s) => new(
+        s.Title, s.Category, s.InModIndex, s.IsArchivedModIndex,
+        s.GameVersion, s.Author, s.CreatedDate, s.ThumbnailPath, s.IsWip, s.SourceBoard);
+
+    // Returns true when any meaningful field differs from the pre-scrape snapshot.
+    private static bool HasMeaningfulChanges(ModSummary s, MeaningfulSummarySnapshot old) =>
+        s.Title != old.Title ||
+        s.Category != old.Category ||
+        s.InModIndex != old.InModIndex ||
+        s.IsArchivedModIndex != old.IsArchivedModIndex ||
+        s.GameVersion != old.GameVersion ||
+        s.Author != old.Author ||
+        s.CreatedDate != old.CreatedDate ||
+        s.ThumbnailPath != old.ThumbnailPath ||
+        s.IsWip != old.IsWip ||
+        s.SourceBoard != old.SourceBoard;
+
+    // Logs the count and sorted IDs of topics with meaningful field changes after a scrape.
+    private void LogMeaningfulChanges(List<int> changedIds, int totalScraped)
+    {
+        changedIds.Sort();
+        if (changedIds.Count == 0)
+            _log.Information("Meaningful changes: none among {Total} scraped topic(s)", totalScraped);
+        else
+            _log.Information("Meaningful changes in {Count}/{Total} scraped topic(s) — IDs: {Ids}",
+                changedIds.Count, totalScraped, changedIds);
+    }
 
     private static bool IsNewOrLastPostChanged(ModSummary summary, IReadOnlyDictionary<int, ModSummary> indexMap)
     {
@@ -456,6 +493,21 @@ public class ScraperEngine : IAsyncDisposable
         _playwright = null;
         GC.SuppressFinalize(this);
     }
+
+    // Value snapshot of ModSummary fields that matter for change detection
+    // (excludes ScrapedAt, Views, Replies, LastPostDate, and LastPostBy).
+    private readonly record struct MeaningfulSummarySnapshot(
+        string Title,
+        string Category,
+        bool InModIndex,
+        bool IsArchivedModIndex,
+        string? GameVersion,
+        string Author,
+        string? CreatedDate,
+        string? ThumbnailPath,
+        bool IsWip,
+        int? SourceBoard);
 }
+
 
 

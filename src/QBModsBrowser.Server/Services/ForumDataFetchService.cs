@@ -52,13 +52,13 @@ public class ForumDataFetchService : BackgroundService
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         _log.Information("ForumDataFetchService started");
-        await EnsureDataFreshAsync(stoppingToken);
+        await EnsureDataFreshAsync(ct: stoppingToken);
     }
 
     // Fetches and unpacks the remote bundle if the local data has exceeded the configured TTL.
-    // Skips entirely when LocalRepoPath is set (operator machine — data is always fresh from scrapes).
+    // Pass force=true to bypass the TTL check and always re-download (e.g. from a UI button).
     // Safe to call concurrently: only one fetch runs at a time.
-    public async Task EnsureDataFreshAsync(CancellationToken ct = default)
+    public async Task EnsureDataFreshAsync(bool force = false, CancellationToken ct = default)
     {
         if (Interlocked.CompareExchange(ref _isFetching, 1, 0) != 0)
         {
@@ -68,7 +68,7 @@ public class ForumDataFetchService : BackgroundService
 
         try
         {
-            await FetchInternalAsync(ct);
+            await FetchInternalAsync(force, ct);
         }
         finally
         {
@@ -77,7 +77,8 @@ public class ForumDataFetchService : BackgroundService
     }
 
     // Inner fetch logic, runs only when no other fetch is active.
-    private async Task FetchInternalAsync(CancellationToken ct)
+    // When force=true the TTL file check is skipped so the bundle is always re-downloaded.
+    private async Task FetchInternalAsync(bool force, CancellationToken ct)
     {
         var scraperConfig = await _store.LoadConfig();
         if (scraperConfig.DisableRemoteForumDataFetch)
@@ -95,7 +96,7 @@ public class ForumDataFetchService : BackgroundService
         var lastFetchedPath = Path.Combine(_dataPath, LastFetchedFileName);
         var fetchInterval = TimeSpan.FromHours(_config.FetchIntervalHours > 0 ? _config.FetchIntervalHours : 6);
 
-        if (File.Exists(lastFetchedPath))
+        if (!force && File.Exists(lastFetchedPath))
         {
             var raw = await File.ReadAllTextAsync(lastFetchedPath, ct);
             if (DateTime.TryParse(raw.Trim(), out var lastFetched))
@@ -110,6 +111,9 @@ public class ForumDataFetchService : BackgroundService
                 }
             }
         }
+
+        if (force)
+            _log.Information("Force-fetching remote forum data bundle (bypassing TTL)");
 
         _log.Information("Fetching remote forum data bundle from {Url}", _config.RemoteRawUrl);
 

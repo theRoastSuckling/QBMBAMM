@@ -79,6 +79,19 @@ function buildManagerMethods() {
             }
         },
 
+        // Forces an immediate re-download of the QBForumModData bundle, bypassing the 6-hour TTL.
+        async forceRefreshForumData() {
+            try {
+                this.managerMessage = 'Refreshing forum data...';
+                await fetch('/api/scraper/force-refresh-remote-data', { method: 'POST' });
+                this.managerMessage = 'Forum data refreshed';
+                await this.panel.fetchRemoteDataInfo();
+                setTimeout(() => { this.managerMessage = ''; }, 3000);
+            } catch (e) {
+                this.managerMessage = 'Error: ' + e.message;
+            }
+        },
+
         // Loads mod manager settings shown in the UI panel.
         async loadManagerConfig() {
             try {

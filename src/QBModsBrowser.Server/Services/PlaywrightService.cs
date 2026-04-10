@@ -14,6 +14,8 @@ public class PlaywrightService
     private volatile bool _installRunning;
     private bool? _installSucceeded;
     private int _installExitCode = -1;
+    // Set when a scrape fails because the required Chromium revision is missing (stale install after app update).
+    private volatile bool _browserMissing;
 
     // Accepts a logger for recording install lifecycle events.
     public PlaywrightService(ILogger logger)
@@ -21,11 +23,13 @@ public class PlaywrightService
         _log = logger.ForContext<PlaywrightService>();
     }
 
-    // Returns true if a Chromium executable exists under the default Playwright browser store.
-    // Searches recursively under chromium-* because the sub-folder name varies by platform/version
-    // (e.g. chrome-win64 on modern Windows, chrome-win on older builds).
+    // Returns true only if the Chromium revision required by the current Playwright version is present.
+    // _browserMissing is set when a scrape fails with "Executable doesn't exist", covering the upgrade
+    // scenario where an old chromium-* folder exists but the new required revision has not been downloaded.
     public bool IsInstalled()
     {
+        if (_browserMissing) return false;
+
         var msPlaywrightDir = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "ms-playwright");
@@ -40,6 +44,14 @@ public class PlaywrightService
         }
 
         return false;
+    }
+
+    // Called by the scraper when Playwright throws "Executable doesn't exist", meaning the required
+    // Chromium revision is missing. Forces IsInstalled() to return false so the UI shows the install prompt.
+    public void MarkBrowserMissing()
+    {
+        _browserMissing = true;
+        _log.Warning("Playwright browser marked as missing — required Chromium revision not found");
     }
 
     // Kicks off a background Playwright Chromium install. Returns false if one is already running.
@@ -94,6 +106,8 @@ public class PlaywrightService
 
             _installExitCode = Microsoft.Playwright.Program.Main(["install", "chromium"]);
 
+            // Clear the missing flag before re-checking so IsInstalled() does the real filesystem probe.
+            _browserMissing = false;
             bool installed = IsInstalled();
             lock (_lock)
             {

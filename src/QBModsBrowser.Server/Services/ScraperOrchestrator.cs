@@ -1,3 +1,4 @@
+using Microsoft.Playwright;
 using QBModsBrowser.Scraper.Models;
 using QBModsBrowser.Scraper.Services;
 using QBModsBrowser.Scraper.Storage;
@@ -14,25 +15,31 @@ public class ScraperOrchestrator : BackgroundService
     private readonly AssumedDownloadService _assumed;
     private readonly ForumDataBundler _bundler;
     private readonly ForumDataPublisher _publisher;
+    private readonly PlaywrightService _playwright;
     private readonly object _lock = new();
+
+    // Name of the metadata file that the UI reads to display the "Last scraped" timestamp.
+    private const string BundleMetaFileName = ForumDataFetchService.BundleMetaFileName;
 
     private CancellationTokenSource? _scrapeCts;
     private ScraperEngine? _currentEngine;
     private ScrapeJob _lastJob = new();
     private ScrapeResult? _lastResult;
 
-    // Accepts bundler and publisher so a completed scrape automatically exports and pushes data.
+    // Accepts bundler, publisher, and playwright so a missing-browser scrape failure triggers the install prompt.
     public ScraperOrchestrator(
         JsonDataStore store,
         AssumedDownloadService assumed,
         ForumDataBundler bundler,
-        ForumDataPublisher publisher)
+        ForumDataPublisher publisher,
+        PlaywrightService playwright)
     {
         _log = Log.Logger.ForContext<ScraperOrchestrator>();
         _store = store;
         _assumed = assumed;
         _bundler = bundler;
         _publisher = publisher;
+        _playwright = playwright;
     }
 
     public ScrapeJob CurrentJob
@@ -105,6 +112,11 @@ public class ScraperOrchestrator : BackgroundService
                     _currentEngine = null;
                 }
 
+                // After any successful scrape, refresh the bundle-meta file so the UI "Last scraped"
+                // label reflects the freshest local data rather than the last remote-download time.
+                if (result.Success)
+                    _ = Task.Run(() => UpdateBundleMetaAsync());
+
                 // Bundle and publish only when the scrape succeeded and opted in; fire-and-forget so it never blocks the scrape loop.
                 _ = Task.Run(async () =>
                 {
@@ -133,6 +145,11 @@ public class ScraperOrchestrator : BackgroundService
             catch (Exception ex)
             {
                 _log.Error(ex, "Scrape task crashed");
+                // Playwright throws when the required Chromium revision wasn't downloaded yet
+                // (e.g. after an app update that bumped the Playwright version). Mark the browser
+                // as missing so the control panel switches back to the install prompt immediately.
+                if (ex is PlaywrightException && ex.Message.Contains("Executable doesn't exist"))
+                    _playwright.MarkBrowserMissing();
                 lock (_lock)
                 {
                     _lastJob = engine.CurrentJob;
@@ -152,6 +169,28 @@ public class ScraperOrchestrator : BackgroundService
     public void StopScrape()
     {
         _scrapeCts?.Cancel();
+    }
+
+    // Writes the max ScrapedAt from the local index into remote-bundle-meta.json so the UI
+    // "Last scraped" label stays current after a local scrape, not just after a remote fetch.
+    private async Task UpdateBundleMetaAsync()
+    {
+        try
+        {
+            var index = await _store.LoadIndex();
+            if (index.Count == 0) return;
+
+            var updatedAt = index.Max(s => s.ScrapedAt);
+            var metaPath = Path.Combine(_store.BasePath, BundleMetaFileName);
+            await File.WriteAllTextAsync(metaPath,
+                System.Text.Json.JsonSerializer.Serialize(new { updatedAt }));
+
+            _log.Debug("Bundle meta updated after local scrape: updatedAt={UpdatedAt:u}", updatedAt);
+        }
+        catch (Exception ex)
+        {
+            _log.Warning(ex, "Failed to update bundle meta after local scrape");
+        }
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)

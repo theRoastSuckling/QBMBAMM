@@ -140,13 +140,20 @@ public class ModIndexCategoryScraper
         }
     }
 
+    // Cleans whitespace and normalises known aliases (e.g. "Libraries" → "libraries").
     private static string NormalizeCategory(string? raw)
     {
         if (string.IsNullOrWhiteSpace(raw))
             return ForumConstants.UncategorizedCategory;
 
         var cleaned = SpaceRegex.Replace(raw.Trim(), " ");
-        return string.IsNullOrWhiteSpace(cleaned) ? ForumConstants.UncategorizedCategory : cleaned;
+        if (string.IsNullOrWhiteSpace(cleaned))
+            return ForumConstants.UncategorizedCategory;
+
+        if (ForumConstants.IsLibraryCategoryName(cleaned))
+            return ForumConstants.LibraryCategory;
+
+        return cleaned;
     }
 
     private async Task<Dictionary<int, string>> ExtractTopicCategoriesFromPost(ILocator postRoot, CancellationToken ct)

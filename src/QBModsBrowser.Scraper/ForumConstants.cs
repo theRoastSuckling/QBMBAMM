@@ -19,8 +19,8 @@ public static partial class ForumConstants
     /// <summary>Modding Resources board (sorted by last post desc when scraping).</summary>
     public const string LibraryBoardUrl = $"https://{ForumHost}/forum/index.php?board=9.";
 
-    /// <summary>Matches the mod-index style label and category filter ordering in the web UI.</summary>
-    public const string LibraryCategory = "libraries";
+    // Display name used for all mods sourced from the Modding Resources board.
+    public const string LibraryCategory = "Libraries";
 
     // Builds a canonical forum topic URL for a known topic id.
     public static string TopicUrl(int topicId) => $"https://{ForumHost}/forum/index.php?topic={topicId}.0";
@@ -112,14 +112,16 @@ public static partial class ForumConstants
     }
 
     // Guesses a category for board-3 topics using keywords in the title.
+    // Returns display names that match what the mod index scraper produces so both
+    // code paths end up in the same category bucket in the UI.
     public static string GuessCategoryFromTitle(string title)
     {
         if (title.Contains("faction", StringComparison.OrdinalIgnoreCase))
-            return "factions";
+            return "Faction Mods";
         if (title.Contains("portrait", StringComparison.OrdinalIgnoreCase))
-            return "portraits";
+            return "Portrait Packs";
         if (title.Contains("flag", StringComparison.OrdinalIgnoreCase))
-            return "flags";
+            return "Flag Packs";
         return UncategorizedCategory;
     }
 

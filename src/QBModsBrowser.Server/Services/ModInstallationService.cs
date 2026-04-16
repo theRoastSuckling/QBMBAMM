@@ -97,16 +97,14 @@ public class ModInstallationService
                     continue;
                 }
 
-                var backupPath = targetPath + ".backup_" + DateTime.UtcNow.ToString("yyyyMMddHHmmss");
                 try
                 {
-                    Directory.Move(targetPath, backupPath);
-                    _log.Information("Backed up existing mod to {Backup}", Path.GetFileName(backupPath));
+                    Directory.Delete(targetPath, true);
+                    _log.Information("Deleted old mod folder for update: {Folder}", Path.GetFileName(targetPath));
                 }
                 catch (Exception ex)
                 {
-                    _log.Warning(ex, "Could not backup existing mod, overwriting");
-                    Directory.Delete(targetPath, true);
+                    _log.Warning(ex, "Could not delete existing mod folder before update");
                 }
             }
 

@@ -140,7 +140,7 @@ public class ModIndexCategoryScraper
         }
     }
 
-    // Cleans whitespace and normalises known aliases (e.g. "Libraries" → "libraries").
+    // Cleans whitespace and normalises known library aliases (e.g. "Library" → "Libraries").
     private static string NormalizeCategory(string? raw)
     {
         if (string.IsNullOrWhiteSpace(raw))

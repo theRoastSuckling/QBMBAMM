@@ -79,16 +79,14 @@ public static class SevenZipFastInstaller
                         continue;
                     }
 
-                    var backupPath = targetPath + ".backup_" + DateTime.UtcNow.ToString("yyyyMMddHHmmss");
                     try
                     {
-                        Directory.Move(targetPath, backupPath);
-                        log.Information("Backed up existing mod to {Backup}", Path.GetFileName(backupPath));
+                        Directory.Delete(targetPath, true);
+                        log.Information("Deleted old mod folder for update: {Folder}", Path.GetFileName(targetPath));
                     }
                     catch (Exception ex)
                     {
-                        log.Warning(ex, "Could not backup existing mod, overwriting");
-                        Directory.Delete(targetPath, true);
+                        log.Warning(ex, "Could not delete existing mod folder before update");
                     }
                 }
 

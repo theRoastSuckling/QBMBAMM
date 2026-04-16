@@ -24,11 +24,22 @@ public class VersionCheckerService
         _http.DefaultRequestHeaders.UserAgent.ParseAdd("QBModsBrowser/1.0");
     }
 
-    // Returns a recent cached version-check result for one mod when available.
+    // Returns a cached version-check result for one mod, overlaying LocalVersion from the current
+    // local scan so stale cached snapshots never show an outdated installed version.
     public VersionCheckResult? GetCachedResult(string modId)
     {
         if (_cache.TryGetValue(modId, out var result) && DateTime.UtcNow - result.CheckedAt < CacheTtl)
+        {
+            var currentLocal = _localMods.GetCachedMods()
+                .FirstOrDefault(m => string.Equals(m.ModId, modId, StringComparison.OrdinalIgnoreCase))
+                ?.VersionChecker?.ModVersion;
+            if (currentLocal != null)
+            {
+                result.LocalVersion = currentLocal;
+                result.UpdateAvailable = currentLocal.CompareTo(result.RemoteVersion) < 0;
+            }
             return result;
+        }
         return null;
     }
 

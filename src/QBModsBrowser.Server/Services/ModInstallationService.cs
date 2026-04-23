@@ -1,6 +1,7 @@
 using System.Text.Json.Nodes;
 using QBModsBrowser.Server.Models;
 using SharpCompress.Archives;
+using SharpCompress.Common;
 using ILogger = Serilog.ILogger;
 
 namespace QBModsBrowser.Server.Services;
@@ -16,150 +17,118 @@ public class ModInstallationService
         _log = logger.ForContext<ModInstallationService>();
     }
 
-    /// <summary>
-    /// Extracts and installs a mod from a downloaded archive into the mods folder.
-    /// Handles both "folder zipped" and "loose files zipped" cases.
-    /// </summary>
-    // Installs one archive, supporting both packed-folder and loose-file archive layouts.
+    // Installs one archive by extracting everything to a temp directory first, then copying
+    // detected mod roots into the mods folder. The full-archive-first approach means even
+    // solid 7z archives are handled in a single sequential decompression pass, avoiding the
+    // catastrophic re-decompress-from-start penalty that entry-by-entry access causes.
     public async Task<ModArchiveInstallResult> InstallFromArchiveAsync(
         string archivePath,
         string modsFolder,
         Action<long, long>? onExtractProgress = null)
     {
-        if (archivePath.EndsWith(".7z", StringComparison.OrdinalIgnoreCase))
-        {
-            try
-            {
-                // Routes .7z files through a dedicated fast installer with SharpCompress fallback.
-                return await SevenZipFastInstaller.InstallFromArchiveAsync(archivePath, modsFolder, _log, onExtractProgress);
-            }
-            catch (Exception ex)
-            {
-                _log.Warning(ex, "Fast .7z install failed, falling back to SharpCompress");
-            }
-        }
-
         var result = new ModArchiveInstallResult();
-        using var archive = ArchiveFactory.OpenArchive(archivePath);
-        var entries = archive.Entries.Where(e => !e.IsDirectory).ToList();
+        var tempRoot = Path.Combine(Path.GetTempPath(), $"qbmods-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(tempRoot);
 
-        // Find all mod_info.json files in the archive
-        var modInfoEntries = GetValidModInfoEntries(entries);
-
-        if (modInfoEntries.Count == 0)
-            throw new InvalidOperationException("No mod_info.json found in archive");
-
-        foreach (var modInfoEntry in modInfoEntries)
+        try
         {
-            var modInfoPath = NormalizePath(modInfoEntry.Key!);
-            var pathParts = modInfoPath.Split('/');
-
-            string modRootPrefix;
-            string targetFolderName;
-            bool isLooseFiles;
-            string? detectedModId = null;
-            string? archiveVersion = null;
-
-            if (pathParts.Length == 1)
+            using (var archive = ArchiveFactory.OpenArchive(archivePath))
             {
-                isLooseFiles = true;
-                modRootPrefix = "";
-                (detectedModId, archiveVersion) = await ReadModInfoFromEntry(modInfoEntry);
-                targetFolderName = detectedModId ?? Path.GetFileNameWithoutExtension(archivePath);
-            }
-            else
-            {
-                isLooseFiles = false;
-                // Use the direct parent of mod_info.json as the mod root.
-                // Handles wrapper-folder zips (e.g. PMMM/PMMM/ and PMMM/PMMMVE/) where pathParts[0]
-                // is a shared wrapper, not an individual mod root.
-                modRootPrefix = string.Join("/", pathParts[..^1]) + "/";
-                targetFolderName = pathParts[^2];
-                (detectedModId, archiveVersion) = await ReadModInfoFromEntry(modInfoEntry);
+                archive.WriteToDirectory(tempRoot, new ExtractionOptions
+                {
+                    ExtractFullPath = true,
+                    Overwrite = true
+                });
             }
 
-            var targetPath = Path.Combine(modsFolder, targetFolderName);
+            var modInfoPaths = GetValidModInfoPaths(tempRoot);
+            if (modInfoPaths.Count == 0)
+                throw new InvalidOperationException("No mod_info.json found in archive");
 
-            if (Directory.Exists(targetPath))
+            var totalFiles = 0L;
+            foreach (var modInfoPath in modInfoPaths)
             {
-                // Skip extraction when the installed version already matches the archive version.
-                // Still record the mod ID so the topic-archive map is updated and the candidate gets linked.
-                var installedVersion = ReadInstalledVersionFromFolder(targetPath);
-                if (!string.IsNullOrWhiteSpace(archiveVersion)
-                    && !string.IsNullOrWhiteSpace(installedVersion)
-                    && string.Equals(archiveVersion, installedVersion, StringComparison.OrdinalIgnoreCase))
-                {
-                    if (!string.IsNullOrWhiteSpace(detectedModId))
-                        result.ModIds.Add(detectedModId);
-                    _log.Information(
-                        "Skipped install of {Folder}: already at version {Version}",
-                        targetFolderName, installedVersion);
-                    continue;
-                }
-
-                try
-                {
-                    Directory.Delete(targetPath, true);
-                    _log.Information("Deleted old mod folder for update: {Folder}", Path.GetFileName(targetPath));
-                }
-                catch (Exception ex)
-                {
-                    _log.Warning(ex, "Could not delete existing mod folder before update");
-                }
+                var rel = Path.GetRelativePath(tempRoot, modInfoPath).Replace('\\', '/');
+                var parts = rel.Split('/', StringSplitOptions.RemoveEmptyEntries);
+                var sourceRoot = parts.Length == 1
+                    ? tempRoot
+                    : Path.Combine(tempRoot, string.Join(Path.DirectorySeparatorChar, parts[..^1]));
+                if (Directory.Exists(sourceRoot))
+                    totalFiles += Directory.EnumerateFiles(sourceRoot, "*", SearchOption.AllDirectories).LongCount();
             }
 
-            Directory.CreateDirectory(targetPath);
+            long processedFiles = 0;
+            onExtractProgress?.Invoke(processedFiles, totalFiles);
 
-            var extractableEntries = isLooseFiles
-                ? entries.Where(e => !e.IsDirectory && !string.IsNullOrWhiteSpace(e.Key)).ToList()
-                : entries.Where(e =>
-                    !e.IsDirectory
-                    && !string.IsNullOrWhiteSpace(e.Key)
-                    && NormalizePath(e.Key!).StartsWith(modRootPrefix, StringComparison.OrdinalIgnoreCase)).ToList();
-            var totalExtractable = extractableEntries.Count;
-            long extracted = 0;
-            onExtractProgress?.Invoke(extracted, totalExtractable);
-            foreach (var entry in entries)
+            foreach (var modInfoPath in modInfoPaths)
             {
-                if (entry.Key == null || entry.IsDirectory) continue;
+                var rel = Path.GetRelativePath(tempRoot, modInfoPath).Replace('\\', '/');
+                var parts = rel.Split('/', StringSplitOptions.RemoveEmptyEntries);
+                var isLooseFiles = parts.Length == 1;
+                var sourceRoot = isLooseFiles
+                    ? tempRoot
+                    : Path.Combine(tempRoot, string.Join(Path.DirectorySeparatorChar, parts[..^1]));
+                if (!Directory.Exists(sourceRoot)) continue;
 
-                var normalizedKey = NormalizePath(entry.Key);
-                string relativePath;
+                var (detectedModId, archiveVersion) = await ReadModInfoFromPathAsync(modInfoPath);
+                var targetFolderName = isLooseFiles
+                    ? (detectedModId ?? Path.GetFileNameWithoutExtension(archivePath))
+                    : parts[^2];
+                var targetPath = Path.Combine(modsFolder, targetFolderName);
 
-                if (isLooseFiles)
+                if (Directory.Exists(targetPath))
                 {
-                    relativePath = normalizedKey;
-                }
-                else
-                {
-                    if (!normalizedKey.StartsWith(modRootPrefix, StringComparison.OrdinalIgnoreCase))
+                    var installedVersion = ReadInstalledVersionFromFolder(targetPath);
+                    if (!string.IsNullOrWhiteSpace(archiveVersion)
+                        && !string.IsNullOrWhiteSpace(installedVersion)
+                        && string.Equals(archiveVersion, installedVersion, StringComparison.OrdinalIgnoreCase))
+                    {
+                        if (!string.IsNullOrWhiteSpace(detectedModId))
+                            result.ModIds.Add(detectedModId);
+                        _log.Information(
+                            "Skipped install of {Folder}: already at version {Version}",
+                            targetFolderName, installedVersion);
                         continue;
-                    relativePath = normalizedKey[modRootPrefix.Length..];
+                    }
+
+                    try
+                    {
+                        Directory.Delete(targetPath, true);
+                        _log.Information("Deleted old mod folder for update: {Folder}", Path.GetFileName(targetPath));
+                    }
+                    catch (Exception ex)
+                    {
+                        _log.Warning(ex, "Could not delete existing mod folder before update");
+                    }
                 }
 
-                if (string.IsNullOrWhiteSpace(relativePath)) continue;
+                Directory.CreateDirectory(targetPath);
+                var extracted = await CopyDirectoryContentsAsync(sourceRoot, targetPath, () =>
+                {
+                    processedFiles++;
+                    onExtractProgress?.Invoke(processedFiles, totalFiles);
+                });
 
-                var destPath = Path.Combine(targetPath, relativePath.Replace('/', Path.DirectorySeparatorChar));
-                var destDir = Path.GetDirectoryName(destPath);
-                if (destDir != null) Directory.CreateDirectory(destDir);
+                if (!string.IsNullOrWhiteSpace(detectedModId))
+                    result.ModIds.Add(detectedModId);
 
-                await using var entryStream = entry.OpenEntryStream();
-                await using var fileStream = File.Create(destPath);
-                await entryStream.CopyToAsync(fileStream);
-                extracted++;
-                onExtractProgress?.Invoke(extracted, totalExtractable);
+                result.InstalledFolderPaths.Add(Path.GetFullPath(targetPath));
+                _log.Information("Installed mod {ModFolder} (id={ModId}): {Count} files extracted",
+                    targetFolderName, detectedModId ?? "unknown", extracted);
             }
 
-            if (!string.IsNullOrWhiteSpace(detectedModId))
-                result.ModIds.Add(detectedModId);
-
-            result.InstalledFolderPaths.Add(Path.GetFullPath(targetPath));
-
-            _log.Information("Installed mod {ModFolder} (id={ModId}): {Count} files extracted",
-                targetFolderName, detectedModId ?? "unknown", extracted);
+            var uniqueModIds = result.ModIds
+                .Where(m => !string.IsNullOrWhiteSpace(m))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+            result.ModIds.Clear();
+            result.ModIds.AddRange(uniqueModIds);
+            return result;
         }
-
-        return result;
+        finally
+        {
+            try { if (Directory.Exists(tempRoot)) Directory.Delete(tempRoot, true); } catch { }
+        }
     }
 
     // Reads archive metadata and returns detected mod ids without extracting files.
@@ -179,7 +148,58 @@ public class ModInstallationService
         return ids.ToList();
     }
 
-    // Reads mod id and version from an archive entry's mod_info.json in one pass.
+    // Finds valid mod_info.json files in a directory, ignoring hidden/special directories.
+    private static List<string> GetValidModInfoPaths(string root)
+    {
+        return Directory.EnumerateFiles(root, "mod_info.json", SearchOption.AllDirectories)
+            .Where(p =>
+            {
+                var rel = Path.GetRelativePath(root, p).Replace('\\', '/');
+                var parts = rel.Split('/', StringSplitOptions.RemoveEmptyEntries);
+                return !parts.Any(x => x.StartsWith('.') || x.StartsWith('_'));
+            })
+            .ToList();
+    }
+
+    // Copies all files from one directory to another and ticks progress per copied file.
+    private static async Task<int> CopyDirectoryContentsAsync(string sourceRoot, string targetRoot, Action onFileCopied)
+    {
+        var files = Directory.EnumerateFiles(sourceRoot, "*", SearchOption.AllDirectories).ToList();
+        foreach (var src in files)
+        {
+            var rel = Path.GetRelativePath(sourceRoot, src);
+            var dest = Path.Combine(targetRoot, rel);
+            var destDir = Path.GetDirectoryName(dest);
+            if (!string.IsNullOrWhiteSpace(destDir))
+                Directory.CreateDirectory(destDir);
+            await using var inStream = File.OpenRead(src);
+            await using var outStream = File.Create(dest);
+            await inStream.CopyToAsync(outStream);
+            onFileCopied();
+        }
+
+        return files.Count;
+    }
+
+    // Reads mod id/version from a mod_info.json path extracted to disk.
+    private static async Task<(string? Id, string? Version)> ReadModInfoFromPathAsync(string modInfoPath)
+    {
+        try
+        {
+            var raw = await File.ReadAllTextAsync(modInfoPath);
+            var json = JsonFixHelper.FixJson(raw);
+            var node = JsonNode.Parse(json);
+            var id = node?["id"]?.GetValue<string>();
+            var version = ExtractVersionString(node?["version"]);
+            return (string.IsNullOrWhiteSpace(id) ? null : id, version);
+        }
+        catch
+        {
+            return (null, null);
+        }
+    }
+
+    // Reads mod id/version from an archive entry without extracting to disk.
     private static async Task<(string? Id, string? Version)> ReadModInfoFromEntry(IArchiveEntry entry)
     {
         try
@@ -233,28 +253,17 @@ public class ModInstallationService
         return versionNode.ToString();
     }
 
-    // Filters archive entries down to valid mod_info.json files used for id detection and installs.
+    // Filters archive entries down to valid mod_info.json files.
     private static List<IArchiveEntry> GetValidModInfoEntries(List<IArchiveEntry> entries)
     {
         return entries
             .Where(e => !string.IsNullOrEmpty(e.Key))
+            .Where(e => Path.GetFileName(e.Key!).Equals("mod_info.json", StringComparison.OrdinalIgnoreCase))
             .Where(e =>
             {
-                var name = Path.GetFileName(e.Key!);
-                return name.Equals("mod_info.json", StringComparison.OrdinalIgnoreCase);
-            })
-            .Where(e =>
-            {
-                // Ignore files inside hidden/special directories
-                var parts = NormalizePath(e.Key!).Split('/');
+                var parts = e.Key!.Replace('\\', '/').TrimStart('/').Split('/');
                 return !parts.Any(p => p.StartsWith('.') || p.StartsWith('_'));
             })
             .ToList();
-    }
-
-    // Normalizes archive internal paths for reliable cross-platform extraction logic.
-    private static string NormalizePath(string path)
-    {
-        return path.Replace('\\', '/').TrimStart('/');
     }
 }

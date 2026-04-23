@@ -10,7 +10,7 @@
     <!-- Published exe and process name used throughout the build script. -->
     <AssemblyName>QBMBAMM</AssemblyName>
     <!-- Single source of truth for the app version; bumped by bump or publish helpers/bump-version.ps1 (bump-minor.bat / bump-patch.bat). -->
-    <Version>2.2.12</Version>
+    <Version>2.2.13</Version>
   </PropertyGroup>
 
   <ItemGroup>
@@ -18,7 +18,6 @@
     <PackageReference Include="Serilog.Sinks.File" Version="6.*" />
     <PackageReference Include="Serilog.Sinks.Console" Version="6.*" />
     <PackageReference Include="Serilog.Formatting.Compact" Version="3.*" />
-    <PackageReference Include="SevenZipExtractor" Version="1.0.19" />
     <PackageReference Include="SharpCompress" Version="0.*" />
     <PackageReference Include="YamlDotNet" Version="16.*" />
   </ItemGroup>
@@ -58,6 +57,7 @@
   </Target>
 
 </Project>
+
 
 
 

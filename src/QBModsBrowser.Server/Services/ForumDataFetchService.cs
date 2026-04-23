@@ -44,7 +44,7 @@ public class ForumDataFetchService : BackgroundService
         _store = store;
         _bundler = bundler;
         _assumed = assumed;
-        _http = new HttpClient();
+        _http = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
         _http.DefaultRequestHeaders.UserAgent.ParseAdd("QBModsBrowser/1.0");
     }
 
@@ -96,7 +96,14 @@ public class ForumDataFetchService : BackgroundService
         var lastFetchedPath = Path.Combine(_dataPath, LastFetchedFileName);
         var fetchInterval = TimeSpan.FromHours(_config.FetchIntervalHours > 0 ? _config.FetchIntervalHours : 6);
 
-        if (!force && File.Exists(lastFetchedPath))
+        // The TTL is only meaningful when the index actually has content. If mods-index.json is
+        // missing or empty, the data is absent regardless of what the TTL file says (e.g. the app
+        // was reinstalled over an existing data folder, or the unpack was interrupted), so we skip
+        // the TTL and always re-fetch to recover automatically.
+        var indexPath = Path.Combine(_dataPath, "mods-index.json");
+        bool indexHasContent = File.Exists(indexPath) && new FileInfo(indexPath).Length > 4;
+
+        if (!force && indexHasContent && File.Exists(lastFetchedPath))
         {
             var raw = await File.ReadAllTextAsync(lastFetchedPath, ct);
             if (DateTime.TryParse(raw.Trim(), out var lastFetched))

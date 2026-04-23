@@ -57,6 +57,7 @@ function modsApp() {
         // Discord IDs loaded from /api/app-config on init; used by openDiscordBugThread.
         _discordConfig: null,
         downloadLog: createDownloadLogState(),
+        appUpdate: createAppUpdateState(),
         panel: createPanelState(),
         // Dependency overlay state — populated by fetchDependencies(), applied by _applyDepSort().
         depPriorityTopicIds: [],
@@ -75,6 +76,7 @@ function modsApp() {
             this.favoriteIds = window.QBFavorites ? QBFavorites.load() : [];
             this.panel.parent = this;
             this.downloadLog.parent = this;
+            this.appUpdate.parent = this;
             this.computePageSize();
             let resizeTimer = null;
             window.addEventListener('resize', () => {
@@ -111,6 +113,7 @@ function modsApp() {
             }
             this.maybeRunDailyUpdateCheck();
             this.downloadLog.fetchItems();
+            this.appUpdate.fetchStatus();
             // Non-blocking: wait for the startup version check then refresh mod cards.
             this._warmAndRefreshOnStartup();
         },

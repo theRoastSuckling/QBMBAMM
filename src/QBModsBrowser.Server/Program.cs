@@ -1,5 +1,4 @@
 using System.Net.Http;
-using System.Reflection;
 using System.Text.Json;
 using System.Windows.Forms;
 using System.Threading;
@@ -189,6 +188,7 @@ internal static class Program
         builder.Services.AddSingleton(sp => new VersionCheckerService(Log.Logger, sp.GetRequiredService<LocalModService>()));
         builder.Services.AddSingleton(new ModInstallationService(Log.Logger));
         builder.Services.AddSingleton(new AssumedDownloadService(Log.Logger, basePath));
+        builder.Services.AddSingleton(new AppUpdateService(Log.Logger));
         builder.Services.AddSingleton(sp => new ForumDataFetchService(
             Log.Logger,
             appConfig.ForumDataRepo,
@@ -310,16 +310,6 @@ internal static class Program
         Environment.Exit(0);
     }
 
-    // Returns the informational version of this exe (e.g. "2.2.13"), parsed as a Version.
-    static Version GetMyVersion()
-    {
-        var raw = Assembly.GetExecutingAssembly()
-            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()
-            ?.InformationalVersion ?? "0.0.0";
-        var clean = raw.Contains('+') ? raw[..raw.IndexOf('+')] : raw;
-        return Version.TryParse(clean, out var v) ? v : new Version(0, 0, 0);
-    }
-
     // Queries the running server's /api/app-info endpoint and returns its version.
     // Returns null if the server is unreachable or the response cannot be parsed.
     static async Task<Version?> TryGetRunningVersionAsync(string appUrl)
@@ -346,7 +336,7 @@ internal static class Program
         if (runningVersion == null)
             return false;
 
-        var myVersion = GetMyVersion();
+        var myVersion = AppVersion.GetCurrent();
         if (myVersion <= runningVersion)
             return false;
 

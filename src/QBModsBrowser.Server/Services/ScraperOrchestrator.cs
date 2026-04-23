@@ -2,6 +2,7 @@ using Microsoft.Playwright;
 using QBModsBrowser.Scraper.Models;
 using QBModsBrowser.Scraper.Services;
 using QBModsBrowser.Scraper.Storage;
+using QBModsBrowser.Server.Utilities;
 using Serilog;
 using ILogger = Serilog.ILogger;
 
@@ -20,6 +21,9 @@ public class ScraperOrchestrator : BackgroundService
 
     // Name of the metadata file that the UI reads to display the "Last scraped" timestamp.
     private const string BundleMetaFileName = ForumDataFetchService.BundleMetaFileName;
+    // Persists the last successful scrape completion time across restarts so the auto-scrape
+    // interval is measured from the real last run, not from process start.
+    private const string LastScrapedFileName = "scraper-last-finished.txt";
 
     private CancellationTokenSource? _scrapeCts;
     private ScraperEngine? _currentEngine;
@@ -112,10 +116,13 @@ public class ScraperOrchestrator : BackgroundService
                     _currentEngine = null;
                 }
 
-                // After any successful scrape, refresh the bundle-meta file so the UI "Last scraped"
-                // label reflects the freshest local data rather than the last remote-download time.
+                // After any successful scrape, persist the finish time and refresh the bundle-meta
+                // file so the UI "Last scraped" label reflects the freshest local data.
                 if (result.Success)
+                {
+                    _ = Task.Run(() => PersistLastScrapedAsync());
                     _ = Task.Run(() => UpdateBundleMetaAsync());
+                }
 
                 // Bundle and publish only when the scrape succeeded and opted in; fire-and-forget so it never blocks the scrape loop.
                 _ = Task.Run(async () =>
@@ -171,6 +178,19 @@ public class ScraperOrchestrator : BackgroundService
         _scrapeCts?.Cancel();
     }
 
+    // Saves the current UTC time to disk so the auto-scrape interval survives server restarts.
+    private async Task PersistLastScrapedAsync()
+    {
+        try
+        {
+            await TimestampFile.WriteNowAsync(Path.Combine(_store.BasePath, LastScrapedFileName));
+        }
+        catch (Exception ex)
+        {
+            _log.Warning(ex, "Failed to persist last scrape timestamp");
+        }
+    }
+
     // Writes the max ScrapedAt from the local index into remote-bundle-meta.json so the UI
     // "Last scraped" label stays current after a local scrape, not just after a remote fetch.
     private async Task UpdateBundleMetaAsync()
@@ -196,6 +216,15 @@ public class ScraperOrchestrator : BackgroundService
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         _log.Information("ScraperOrchestrator background service started");
+
+        // Restore the last-finished time from disk so the auto-scrape interval survives restarts.
+        var lastScrapedPath = Path.Combine(_store.BasePath, LastScrapedFileName);
+        var lastFinished = await TimestampFile.ReadAsync(lastScrapedPath, stoppingToken);
+        if (lastFinished.HasValue)
+        {
+            _lastJob.FinishedAt = lastFinished;
+            _log.Debug("Restored last scrape time from disk: {LastFinished:u}", lastFinished.Value);
+        }
 
         while (!stoppingToken.IsCancellationRequested)
         {

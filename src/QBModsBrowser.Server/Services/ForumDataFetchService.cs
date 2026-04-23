@@ -1,6 +1,7 @@
 using System.Text.Json;
 using QBModsBrowser.Scraper.Storage;
 using QBModsBrowser.Server.Models;
+using QBModsBrowser.Server.Utilities;
 using ILogger = Serilog.ILogger;
 
 namespace QBModsBrowser.Server.Services;
@@ -9,10 +10,7 @@ namespace QBModsBrowser.Server.Services;
 // No background polling — checks only when the app is actively used.
 public class ForumDataFetchService : BackgroundService
 {
-    private static readonly JsonSerializerOptions JsonOpts = new()
-    {
-        PropertyNameCaseInsensitive = true
-    };
+    private static readonly JsonSerializerOptions JsonOpts = new() { PropertyNameCaseInsensitive = true };
 
     private const string LastFetchedFileName = "remote-last-fetched.txt";
     // Stores the UpdatedAt timestamp from the most recently applied remote bundle.
@@ -103,19 +101,15 @@ public class ForumDataFetchService : BackgroundService
         var indexPath = Path.Combine(_dataPath, "mods-index.json");
         bool indexHasContent = File.Exists(indexPath) && new FileInfo(indexPath).Length > 4;
 
-        if (!force && indexHasContent && File.Exists(lastFetchedPath))
+        if (!force && indexHasContent)
         {
-            var raw = await File.ReadAllTextAsync(lastFetchedPath, ct);
-            if (DateTime.TryParse(raw.Trim(), out var lastFetched))
+            var lastFetched = await TimestampFile.ReadAsync(lastFetchedPath, ct);
+            if (lastFetched.HasValue && DateTime.UtcNow - lastFetched.Value < fetchInterval)
             {
-                var age = DateTime.UtcNow - lastFetched;
-                if (age < fetchInterval)
-                {
-                    _log.Debug(
-                        "Remote forum data is fresh (age={Age:hh\\:mm}, interval={Interval:hh\\:mm}), skipping fetch",
-                        age, fetchInterval);
-                    return;
-                }
+                _log.Debug(
+                    "Remote forum data is fresh (age={Age:hh\\:mm}, interval={Interval:hh\\:mm}), skipping fetch",
+                    DateTime.UtcNow - lastFetched.Value, fetchInterval);
+                return;
             }
         }
 
@@ -153,12 +147,12 @@ public class ForumDataFetchService : BackgroundService
         }
 
         // Record fetch time only after a successful unpack so a failed attempt retries next cycle.
-        await File.WriteAllTextAsync(lastFetchedPath, DateTime.UtcNow.ToString("O"), ct);
+        await TimestampFile.WriteNowAsync(lastFetchedPath, ct);
 
         // Persist the bundle's own UpdatedAt so the UI can show when the forum data was last scraped.
-        var metaPath = Path.Combine(_dataPath, BundleMetaFileName);
-        await File.WriteAllTextAsync(metaPath,
-            System.Text.Json.JsonSerializer.Serialize(new { updatedAt = bundle.UpdatedAt }), ct);
+        await File.WriteAllTextAsync(
+            Path.Combine(_dataPath, BundleMetaFileName),
+            JsonSerializer.Serialize(new { updatedAt = bundle.UpdatedAt }), ct);
 
         _log.Information(
             "Remote forum data applied: {ModCount} mods, bundleUpdatedAt={UpdatedAt:u}",

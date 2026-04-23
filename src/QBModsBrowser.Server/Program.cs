@@ -1,3 +1,5 @@
+using System.Net.Http;
+using System.Reflection;
 using System.Text.Json;
 using System.Windows.Forms;
 using System.Threading;
@@ -45,9 +47,16 @@ internal static class Program
 
         if (!isPrimaryInstance)
         {
-            // Another instance is already running — just (re)open the browser instead of nagging the user.
-            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(AppUrl) { UseShellExecute = true });
-            return;
+            // If this exe is a newer version than the running server, shut the old one down and
+            // take over. WaitOne blocks until the old instance's Main exits and releases the mutex.
+            bool tookOver = await TryTakeOverIfNewerAsync(singleInstanceMutex, AppUrl);
+            if (!tookOver)
+            {
+                // Same or older version — just (re)open the browser as before.
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(AppUrl) { UseShellExecute = true });
+                return;
+            }
+            // We now own the mutex; fall through to start the server normally.
         }
 
         var contentRoot = ResolveWebContentRoot();
@@ -285,17 +294,75 @@ internal static class Program
         // Start the web host without blocking; the WinForms pump below keeps the process alive.
         await app.StartAsync();
 
-        // Block on the WinForms message loop; returns when the user clicks Exit.
+        // Block on the WinForms message loop; returns when Application.Exit() is called
+        // (either via the tray Exit menu or the /api/app/shutdown endpoint).
         tray.Run();
 
-        // Clear the WinForms sync context before shutdown: Application.Run() has already returned so
-        // the message pump is dead, but WindowsFormsSynchronizationContext is still installed on
-        // this STA thread. If we leave it set, any 'await' continuation inside StopAsync() will
-        // be posted to the dead pump and never execute, causing the process to hang indefinitely.
-        SynchronizationContext.SetSynchronizationContext(null);
+        // Explicitly dispose the tray icon here rather than relying on the using block:
+        // Environment.Exit() below bypasses using-block disposal, so the icon would ghost
+        // if we didn't hide it first. (The menu Exit handler already hides it itself, so
+        // this is a no-op in that path — it's the API-triggered shutdown that needs it.)
+        tray.Dispose();
 
-        // Graceful shutdown after the user exits the tray.
-        await app.StopAsync();
+        // Force-exit immediately; app.StopAsync() can block for 30+ seconds waiting for hosted
+        // background services to drain, which is unacceptable for a desktop tray app.
         Log.CloseAndFlush();
+        Environment.Exit(0);
+    }
+
+    // Returns the informational version of this exe (e.g. "2.2.13"), parsed as a Version.
+    static Version GetMyVersion()
+    {
+        var raw = Assembly.GetExecutingAssembly()
+            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()
+            ?.InformationalVersion ?? "0.0.0";
+        var clean = raw.Contains('+') ? raw[..raw.IndexOf('+')] : raw;
+        return Version.TryParse(clean, out var v) ? v : new Version(0, 0, 0);
+    }
+
+    // Queries the running server's /api/app-info endpoint and returns its version.
+    // Returns null if the server is unreachable or the response cannot be parsed.
+    static async Task<Version?> TryGetRunningVersionAsync(string appUrl)
+    {
+        try
+        {
+            using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(3) };
+            var json = await http.GetStringAsync($"{appUrl}/api/app-info");
+            using var doc = JsonDocument.Parse(json);
+            var raw = doc.RootElement.GetProperty("version").GetString()?.TrimStart('v');
+            return Version.TryParse(raw, out var v) ? v : null;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    // If this exe is newer than the running server, requests its shutdown and waits for it to exit.
+    // Returns true if the takeover succeeded (caller should proceed as primary instance).
+    static async Task<bool> TryTakeOverIfNewerAsync(Mutex mutex, string appUrl)
+    {
+        var runningVersion = await TryGetRunningVersionAsync(appUrl);
+        if (runningVersion == null)
+            return false;
+
+        var myVersion = GetMyVersion();
+        if (myVersion <= runningVersion)
+            return false;
+
+        // Signal the old instance to shut down gracefully.
+        try
+        {
+            using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
+            await http.PostAsync($"{appUrl}/api/app/shutdown", null);
+        }
+        catch
+        {
+            // If the request fails the old instance may already be gone; still try to acquire below.
+        }
+
+        // Block until the old instance releases the mutex (its Main() has fully returned).
+        // 15 seconds is generous for a graceful shutdown; if it times out we give up.
+        return mutex.WaitOne(TimeSpan.FromSeconds(15));
     }
 }

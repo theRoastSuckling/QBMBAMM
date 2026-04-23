@@ -38,7 +38,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-set "EXE=%ROOT%src\QBModsBrowser.Server\bin\Debug\net9.0-windows\QBMBAMM.exe"
+set "EXE=%ROOT%src\QBModsBrowser.Server\bin\Debug\net10.0-windows\QBMBAMM.exe"
 
 echo.
 echo Starting QBMBAMM.exe...

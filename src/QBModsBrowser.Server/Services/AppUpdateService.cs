@@ -45,7 +45,7 @@ public record AppUpdateStatus(
 // script that copies the extracted files over the running install folder after this process exits.
 public class AppUpdateService
 {
-    const string GitHubApiUrl = "https://api.github.com/repos/theRoastSuckling/QBMBAMM/releases/latest";
+    const string GitHubApiUrl = "https://api.github.com/repos/theRoastSuckling/QBMBAMM/releases?per_page=5";
     const string AssetFileName = "QBMBAMM-Windows.zip";
     static readonly TimeSpan CacheTtl = TimeSpan.FromMinutes(1);
 
@@ -97,33 +97,58 @@ rmdir /s /q ""%SRC%""
                 resp.EnsureSuccessStatusCode();
                 await using var s = await resp.Content.ReadAsStreamAsync();
                 using var doc = await JsonDocument.ParseAsync(s);
-                var root = doc.RootElement;
-                var tag = root.GetProperty("tag_name").GetString() ?? "";
-                var body = root.TryGetProperty("body", out var b) ? b.GetString() : null;
-                var htmlUrl = root.TryGetProperty("html_url", out var h) ? h.GetString() : null;
-                string? assetUrl = null;
-                if (root.TryGetProperty("assets", out var assets) && assets.ValueKind == JsonValueKind.Array)
+
+                // Collect all releases newer than current, newest-first from GitHub.
+                // We want: asset URL + release URL from the highest version,
+                // and notes from all skipped versions in ascending order (oldest first).
+                Version? latestVersion = null;
+                string? latestAssetUrl = null;
+                string? latestHtmlUrl = null;
+                var newerReleases = new List<(Version Ver, string? Notes)>();
+
+                foreach (var rel in doc.RootElement.EnumerateArray())
                 {
-                    foreach (var a in assets.EnumerateArray())
+                    var tag = rel.TryGetProperty("tag_name", out var t) ? t.GetString() : null;
+                    var ver = ParseTagVersion(tag);
+                    if (ver == null || ver <= current) continue;
+
+                    var notes = rel.TryGetProperty("body", out var b) ? b.GetString() : null;
+                    newerReleases.Add((ver, notes));
+
+                    if (latestVersion == null || ver > latestVersion)
                     {
-                        var name = a.TryGetProperty("name", out var n) ? n.GetString() : null;
-                        if (string.Equals(name, AssetFileName, StringComparison.OrdinalIgnoreCase))
+                        latestVersion = ver;
+                        latestHtmlUrl = rel.TryGetProperty("html_url", out var h) ? h.GetString() : null;
+                        latestAssetUrl = null;
+                        if (rel.TryGetProperty("assets", out var assets) && assets.ValueKind == JsonValueKind.Array)
                         {
-                            assetUrl = a.TryGetProperty("browser_download_url", out var d) ? d.GetString() : null;
-                            break;
+                            foreach (var a in assets.EnumerateArray())
+                            {
+                                var name = a.TryGetProperty("name", out var n) ? n.GetString() : null;
+                                if (string.Equals(name, AssetFileName, StringComparison.OrdinalIgnoreCase))
+                                {
+                                    latestAssetUrl = a.TryGetProperty("browser_download_url", out var d) ? d.GetString() : null;
+                                    break;
+                                }
+                            }
                         }
                     }
                 }
 
-                var remote = ParseTagVersion(tag);
-                var updateAvailable = remote != null && remote > current && assetUrl != null;
+                // Sort descending so the most recent release appears first.
+                newerReleases.Sort((x, y) => y.Ver.CompareTo(x.Ver));
+                var combinedNotes = string.Join("\n\n", newerReleases
+                    .Where(r => !string.IsNullOrWhiteSpace(r.Notes))
+                    .Select(r => $"v{r.Ver.ToString(3)}\n{r.Notes!.Trim()}"));
+
+                var updateAvailable = latestVersion != null && latestAssetUrl != null;
                 _cached = new AppUpdateStatus(
                     CurrentVersion: "v" + current.ToString(3),
-                    RemoteVersion: remote != null ? "v" + remote.ToString(3) : tag,
+                    RemoteVersion: latestVersion != null ? "v" + latestVersion.ToString(3) : null,
                     UpdateAvailable: updateAvailable,
-                    ReleaseNotes: body,
-                    ReleaseUrl: htmlUrl,
-                    AssetUrl: assetUrl,
+                    ReleaseNotes: string.IsNullOrEmpty(combinedNotes) ? null : combinedNotes,
+                    ReleaseUrl: latestHtmlUrl,
+                    AssetUrl: latestAssetUrl,
                     LastCheckedAt: DateTimeOffset.UtcNow,
                     LastError: null);
             }

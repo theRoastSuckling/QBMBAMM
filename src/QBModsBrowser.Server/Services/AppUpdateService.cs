@@ -191,12 +191,15 @@ rmdir /s /q ""%SRC%""
 
             var pid = Environment.ProcessId;
             _log.Information("Spawning updater: {Bat} PID={Pid} SRC={Src} DEST={Dest}", batPath, pid, extractDir, installDir);
+            // UseShellExecute=true launches via Windows ShellExecute: the bat runs detached in its own
+            // cmd.exe window, arguments are passed correctly even when paths contain spaces,
+            // and the parent process does not wait for it to finish.
             Process.Start(new ProcessStartInfo
             {
-                FileName = "cmd.exe",
-                Arguments = $"/c start \"\" /MIN \"{batPath}\" {pid} \"{extractDir}\" \"{installDir}\"",
-                UseShellExecute = false,
-                CreateNoWindow = true,
+                FileName = batPath,
+                Arguments = $"{pid} \"{extractDir}\" \"{installDir}\"",
+                UseShellExecute = true,
+                WindowStyle = ProcessWindowStyle.Minimized,
             });
 
             // Same pattern as AppController.Shutdown: let the HTTP response return, then exit the WinForms message loop

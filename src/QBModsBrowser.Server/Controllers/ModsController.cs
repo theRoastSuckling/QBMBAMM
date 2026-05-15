@@ -257,6 +257,11 @@ public class ModsController : ControllerBase
         int ghostSlots = depReport.UnmatchedDependencies.Count;
         var (paged, totalPages) = PaginateModsForGhostSlots(enriched, total, page, pageSize, ghostSlots);
 
+        // For mods that have no scraped thumbnail, point the client at the lazy fallback endpoint
+        // so it can load the first stable image from the mod's forum post on demand.
+        foreach (var m in paged.Where(m => m.ThumbnailPath == null && _store.HasDetail(m.TopicId)))
+            m.ThumbnailPath = $"ext:/api/mods/{m.TopicId}/thumbnail-fallback";
+
         IReadOnlyList<UnmatchedDependency> unmatchedForClient = page <= 1
             ? depReport.UnmatchedDependencies
             : Array.Empty<UnmatchedDependency>();
@@ -358,6 +363,31 @@ public class ModsController : ControllerBase
             manager = BuildManagerPayload(id, context.Detail, context.EnrichedSummary),
             assumedDownloads
         });
+    }
+
+    // Returns the first stable (non-Discord-CDN) image from a mod's forum post, proxied through the image cache.
+    // Called lazily by the client when the primary Discord CDN thumbnail returns 404.
+    [HttpGet("{id:int}/thumbnail-fallback")]
+    public async Task<IActionResult> GetThumbnailFallback(int id)
+    {
+        var detail = await _store.LoadDetail(id);
+        if (detail?.Images == null || detail.Images.Count == 0)
+            return NotFound();
+
+        // Pick the first image that is not Discord CDN (those expire) and not a badge/spinner.
+        var url = detail.Images
+            .Select(img => img.OriginalUrl)
+            .FirstOrDefault(u =>
+                !string.IsNullOrWhiteSpace(u) &&
+                !u.Contains("discordapp.com", StringComparison.OrdinalIgnoreCase) &&
+                !u.Contains("discordapp.net", StringComparison.OrdinalIgnoreCase) &&
+                !u.Contains("shields.io", StringComparison.OrdinalIgnoreCase) &&
+                !u.Contains("loading.gif", StringComparison.OrdinalIgnoreCase));
+
+        if (url == null)
+            return NotFound();
+
+        return Redirect($"/api/images/external?url={Uri.EscapeDataString(url)}");
     }
 
     // Resolves assumed downloads after initial page load so detail rendering is not blocked.

@@ -421,7 +421,18 @@
                         <template x-if="mod.thumbnailPath">
                             <div class="mod-thumb-wrap shrink-0">
                                 <img :src="mod.thumbnailPath.slice(4)"
-                                    class="mod-thumb-img" alt="" @error="$el.style.display='none'" loading="lazy">
+                                    class="mod-thumb-img" alt=""
+                                    @error="
+                                        if (mod.fallbackThumbnailPath && $el.src !== mod.fallbackThumbnailPath.slice(4)) {
+                                            $el.src = mod.fallbackThumbnailPath.slice(4);
+                                        } else if (!mod._detailThumbTried && !$el.src.includes('/thumbnail-fallback')) {
+                                            mod._detailThumbTried = true;
+                                            $el.src = '/api/mods/' + mod.topicId + '/thumbnail-fallback';
+                                        } else {
+                                            mod.thumbnailPath = null;
+                                        }
+                                    "
+                                    loading="lazy">
                             </div>
                         </template>
                         <template x-if="!mod.thumbnailPath">

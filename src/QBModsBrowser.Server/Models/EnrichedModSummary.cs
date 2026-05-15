@@ -21,6 +21,8 @@ public class EnrichedModSummary
     public string? LastPostBy { get; set; }
     public string TopicUrl { get; set; } = "";
     public string? ThumbnailPath { get; set; }
+    // Forum-scraped thumbnail kept as fallback when ThumbnailPath is replaced by a potentially-expiring ModRepo URL.
+    public string? FallbackThumbnailPath { get; set; }
     public DateTime ScrapedAt { get; set; }
 
     // ModRepo enrichment

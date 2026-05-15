@@ -105,7 +105,15 @@ public partial class ModMatchingService
 
                 var selectedImageUrl = GetFirstModRepoImageUrl(repoEntry);
                 if (!string.IsNullOrWhiteSpace(selectedImageUrl))
+                {
+                    // Preserve the forum-scraped thumbnail as a fallback only when it is a stable
+                    // (non-Discord-CDN) URL. Discord CDN signed URLs expire after ~24 h and would
+                    // fail just as quickly as the primary thumbnail.
+                    if (!string.IsNullOrWhiteSpace(enriched.ThumbnailPath) &&
+                        !IsDiscordCdnUrl(enriched.ThumbnailPath))
+                        enriched.FallbackThumbnailPath = enriched.ThumbnailPath;
                     enriched.ThumbnailPath = $"ext:{selectedImageUrl}";
+                }
             }
 
             // Step 2: Local mod matching
@@ -517,4 +525,9 @@ public partial class ModMatchingService
         s = Regex.Replace(s, @"\s+", " ").Trim().ToLowerInvariant();
         return s.Length >= 6 ? s : "";
     }
+
+    // Returns true for Discord CDN/media URLs whose signed query params (ex=, hm=) expire after ~24 h.
+    private static bool IsDiscordCdnUrl(string url) =>
+        url.Contains("discordapp.com", StringComparison.OrdinalIgnoreCase) ||
+        url.Contains("discordapp.net", StringComparison.OrdinalIgnoreCase);
 }

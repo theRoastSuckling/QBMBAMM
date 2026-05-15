@@ -83,6 +83,10 @@ public class JsonDataStore
         return JsonSerializer.Deserialize<ModDetail>(json, JsonOpts);
     }
 
+    // Returns true when a detail.json file exists for the given topic without reading its contents.
+    public bool HasDetail(int topicId) =>
+        File.Exists(Path.Combine(_basePath, "mods", topicId.ToString(), "detail.json"));
+
     // Persists one scraped topic detail file.
     public async Task SaveDetail(ModDetail detail)
     {

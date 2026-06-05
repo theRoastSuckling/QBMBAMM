@@ -41,7 +41,9 @@
                 <div class="flex items-center gap-3 flex-wrap">
                     <div class="stat-box flex items-center gap-2">
                         <span class="text-[10px] leading-none text-indigo-200/70 uppercase tracking-wider">Mods</span>
-                        <span class="inline-block min-w-[4ch] text-right tabular-nums text-sm leading-none font-bold text-white" x-text="total"></span>
+                        <span class="tabular-nums text-sm leading-none font-bold text-white">
+                            <span x-text="total"></span><span x-show="grandTotal > 0 && total !== grandTotal" class="text-indigo-300/70 font-normal" x-text="'/' + grandTotal"></span>
+                        </span>
                     </div>
                     <div class="stat-box flex items-center gap-2">
                         <span class="text-[10px] leading-none text-indigo-200/70 uppercase tracking-wider">Data</span>

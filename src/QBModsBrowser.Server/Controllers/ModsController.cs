@@ -54,6 +54,8 @@ public class ModsController : ControllerBase
         _ = Task.Run(() => _forumFetch.EnsureDataFreshAsync());
 
         var mods = await _store.LoadIndex();
+        // Capture unfiltered count before any filter narrows the list.
+        int grandTotal = mods.Count;
         await _matching.PrepareEnrichmentAsync();
 
         var allVersions = mods
@@ -270,6 +272,7 @@ public class ModsController : ControllerBase
         {
             mods = paged,
             total,
+            grandTotal,
             page,
             pageSize,
             totalPages,

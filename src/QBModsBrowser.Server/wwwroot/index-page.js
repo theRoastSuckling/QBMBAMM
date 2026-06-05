@@ -8,6 +8,7 @@ function modsApp() {
         versions: [],
         versionTierMap: {},
         total: 0,
+        grandTotal: 0,
         totalPages: 1,
         page: 1,
         pageSize: 12,
@@ -287,6 +288,8 @@ function modsApp() {
                 this.unmatchedDeps = data.unmatchedDependencies || [];
                 this._applyDepSort?.();
                 this.total = data.total;
+                // grandTotal is the unfiltered count; fall back to total when not present.
+                this.grandTotal = data.grandTotal ?? data.total;
                 this.totalPages = Math.max(1, data.totalPages || 1);
                 if (data.versions) {
                     this.versions = data.versions;

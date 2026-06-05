@@ -19,8 +19,8 @@ function createPanelState() {
         extCacheClearing: false,
         // null = not yet known; set from isPlaywrightInstalled in the scraper status response.
         playwrightInstalled: null,
-        // Remote bundle metadata: when the scraped data was last updated and when this app last fetched it.
-        remoteDataInfo: { updatedAt: null, lastFetched: null },
+        // Remote bundle metadata: timestamps, mod/detail counts, disk size, source URL, fetch interval, and source options.
+        remoteDataInfo: { updatedAt: null, lastFetched: null, modCount: null, detailCount: null, dataSize: null, sourceUrl: null, fetchIntervalHours: null, sourceOptions: [] },
         // Live install progress state.
         playwrightInstall: { running: false, succeeded: null, lines: [], _pollTimer: null },
 
@@ -151,6 +151,34 @@ function createPanelState() {
                 await this.fetchExtCacheStats();
             } catch (_) {}
             this.extCacheClearing = false;
+        },
+
+        // Deletes all locally stored remote forum data files, then refreshes the info card.
+        async clearRemoteDataCache() {
+            try {
+                await fetch('/api/scraper/remote-data-cache', { method: 'DELETE' });
+                await Promise.all([this.fetchRemoteDataInfo(), this.fetchLogs()]);
+            } catch (_) {}
+        },
+
+        // Forces an immediate re-download of the remote forum bundle (bypasses TTL), then refreshes the info card.
+        async refetchRemoteData() {
+            try {
+                await fetch('/api/scraper/force-refresh-remote-data', { method: 'POST' });
+                await Promise.all([this.fetchRemoteDataInfo(), this.fetchLogs()]);
+            } catch (_) {}
+        },
+
+        // Persists the selected source URL to app-config.json and updates the in-memory config.
+        async updateRemoteDataSource(url) {
+            try {
+                await fetch('/api/scraper/remote-data-source', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url })
+                });
+                await this.fetchRemoteDataInfo();
+            } catch (_) {}
         },
 
         // Starts a scrape job using the selected scope and board options.

@@ -76,7 +76,8 @@ function buildLogPaneMethods() {
                             ? new Date(obj['@t']).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })
                             : '';
                         // @l is absent for Information in CLEF; @m is absent in v3 so render the template.
-                        const level = obj['@l'] || 'INF';
+                        // LogTag=DATA overrides the level badge for remote forum data events.
+                        const level = obj['LogTag'] === 'DATA' ? 'DATA' : (obj['@l'] || 'INF');
                         const msg = obj['@m'] ?? renderClefTemplate(obj);
                         // Insert a divider sentinel before each "Server starting" entry.
                         if ((obj['@mt'] || msg).startsWith('Server starting')) {

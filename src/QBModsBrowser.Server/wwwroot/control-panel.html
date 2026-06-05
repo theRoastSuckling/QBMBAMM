@@ -69,7 +69,8 @@
                                         'text-red-400':   line.level === 'ERR' || line.level === 'FTL',
                                         'text-amber-400': line.level === 'WRN',
                                         'text-blue-400':  line.level === 'DBG' || line.level === 'VRB',
-                                        'text-gray-500':  line.level === 'INF'
+                                        'text-gray-500':  line.level === 'INF',
+                                        'text-teal-400':  line.level === 'DATA'
                                     }"
                                     x-text="line.level"></span>
                                 <span class="text-[11px] break-all" :class="line.isDimmed ? 'text-gray-600' : 'text-gray-300'" x-text="line.msg"></span>
@@ -125,19 +126,62 @@
                     <!-- Forum scraping section: conditional on whether Playwright Chromium is installed. -->
                     <div x-show="panel.playwrightInstalled !== null" x-cloak>
 
-                        <!-- Remote data freshness — always visible regardless of Playwright state. -->
+                        <!-- Remote data freshness and stats — always visible regardless of Playwright state. -->
                         <div class="bg-surface-alt rounded-lg border border-gray-700 p-4 mb-5"
-                            x-show="panel.remoteDataInfo.updatedAt || panel.remoteDataInfo.lastFetched">
+                            x-show="panel.remoteDataInfo.updatedAt || panel.remoteDataInfo.lastFetched || panel.remoteDataInfo.modCount !== null">
                             <h3 class="text-sm font-semibold text-white mb-2">Remote Forum Data</h3>
-                            <div class="space-y-1">
+                            <!-- 2-column stats grid: each row is a label/value pair on the left and right. -->
+                            <div class="grid grid-cols-2 gap-x-4 gap-y-1">
                                 <div class="flex items-center justify-between" x-show="panel.remoteDataInfo.updatedAt">
                                     <span class="text-xs text-gray-400">Last scraped</span>
                                     <span class="text-xs text-gray-200" x-text="panel.formatDate(panel.remoteDataInfo.updatedAt)"></span>
                                 </div>
                                 <div class="flex items-center justify-between" x-show="panel.remoteDataInfo.lastFetched">
-                                    <span class="text-xs text-gray-500">Fetched locally</span>
-                                    <span class="text-xs text-gray-500" x-text="panel.formatDate(panel.remoteDataInfo.lastFetched)"></span>
+                                    <span class="text-xs text-gray-400">Fetched locally</span>
+                                    <span class="text-xs text-gray-200" x-text="panel.formatDate(panel.remoteDataInfo.lastFetched)"></span>
                                 </div>
+                                <div class="flex items-center justify-between" x-show="panel.remoteDataInfo.modCount !== null">
+                                    <span class="text-xs text-gray-400">Mods indexed</span>
+                                    <span class="text-xs text-gray-200" x-text="panel.remoteDataInfo.modCount"></span>
+                                </div>
+                                <div class="flex items-center justify-between" x-show="panel.remoteDataInfo.detailCount !== null">
+                                    <span class="text-xs text-gray-400">Details on disk</span>
+                                    <span class="text-xs text-gray-200" x-text="panel.remoteDataInfo.detailCount"></span>
+                                </div>
+                                <div class="flex items-center justify-between" x-show="panel.remoteDataInfo.dataSize">
+                                    <span class="text-xs text-gray-400">Data size</span>
+                                    <span class="text-xs text-gray-200" x-text="panel.remoteDataInfo.dataSize"></span>
+                                </div>
+                                <div class="flex items-center justify-between" x-show="panel.remoteDataInfo.fetchIntervalHours !== null">
+                                    <span class="text-xs text-gray-400">Fetch interval</span>
+                                    <span class="text-xs text-gray-200" x-text="panel.remoteDataInfo.fetchIntervalHours + 'h'"></span>
+                                </div>
+                                <!-- Source URL dropdown — spans full width; shows warning tag for deprecated options. -->
+                                <div class="col-span-2 flex items-start gap-2 mt-0.5" x-show="panel.remoteDataInfo.sourceOptions && panel.remoteDataInfo.sourceOptions.length > 0">
+                                    <!-- "Source" label links to the currently selected source URL. -->
+                                    <a :href="panel.remoteDataInfo.sourceUrl" target="_blank" rel="noopener noreferrer"
+                                        class="text-xs text-blue-400 hover:text-blue-300 underline underline-offset-2 shrink-0 mt-0.5 transition-colors">Source</a>
+                                    <div class="flex-1 min-w-0">
+                                        <select class="w-full bg-surface border border-gray-600 rounded text-[10px] text-gray-300 px-1.5 py-1 focus:outline-none focus:border-gray-400"
+                                            @change="panel.updateRemoteDataSource($event.target.value)">
+                                            <template x-for="opt in panel.remoteDataInfo.sourceOptions" :key="opt.url">
+                                                <option :value="opt.url" :selected="opt.url === panel.remoteDataInfo.sourceUrl"
+                                                    x-text="opt.warning ? '[Warning - ' + opt.warning + '] ' + opt.url : opt.url"></option>
+                                            </template>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Action buttons: clear locally cached data or force a fresh download. -->
+                            <div class="flex gap-2 mt-3">
+                                <button @click="panel.clearRemoteDataCache()"
+                                    class="px-3 py-1.5 rounded text-xs transition bg-surface-raised text-gray-300 hover:bg-gray-600">
+                                    Clear Cache
+                                </button>
+                                <button @click="panel.refetchRemoteData()"
+                                    class="px-3 py-1.5 rounded text-xs transition bg-surface-raised text-gray-300 hover:bg-gray-600">
+                                    Re-fetch
+                                </button>
                             </div>
                         </div>
 

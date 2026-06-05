@@ -2,6 +2,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using QBModsBrowser.Scraper.Models;
 using QBModsBrowser.Scraper.Storage;
+using QBModsBrowser.Server.Models;
 using QBModsBrowser.Server.Services;
 
 namespace QBModsBrowser.Server.Controllers;
@@ -254,8 +255,8 @@ public class ScraperController : ControllerBase
         return Ok(new { success = true });
     }
 
-    // Returns the UpdatedAt timestamp from the last successfully fetched remote bundle and
-    // the last time this machine fetched it, so the UI can display data freshness.
+    // Returns timestamps, mod/detail counts, disk size, source URL, and fetch interval
+    // for the Remote Forum Data card in the control panel.
     [HttpGet("remote-data-info")]
     public async Task<IActionResult> GetRemoteDataInfo()
     {
@@ -291,7 +292,95 @@ public class ScraperController : ControllerBase
             catch { /* non-fatal */ }
         }
 
-        return Ok(new { updatedAt, lastFetched });
+        // Count detail.json files present on disk for the debug stats row.
+        var modsDir = Path.Combine(dataPath, "mods");
+        int detailCount = 0;
+        if (Directory.Exists(modsDir))
+            detailCount = Directory.GetFiles(modsDir, "detail.json", SearchOption.AllDirectories).Length;
+
+        // Mod count and total data size come from the cached store stats (30 s cache, free after first call).
+        var index = await _store.LoadIndex();
+        var stats = await _store.GetStats();
+
+        // Effective URL: scraper-config override wins; falls back to the app-config default.
+        var scraperConfig = await _store.LoadConfig();
+        var effectiveUrl = !string.IsNullOrWhiteSpace(scraperConfig.RemoteRawUrl)
+            ? scraperConfig.RemoteRawUrl
+            : _forumFetch.DefaultRemoteRawUrl;
+
+        return Ok(new
+        {
+            updatedAt,
+            lastFetched,
+            modCount = index.Count,
+            detailCount,
+            dataSize = stats.TotalSizeFormatted,
+            sourceUrl = effectiveUrl,
+            fetchIntervalHours = _forumFetch.FetchIntervalHours,
+            sourceOptions = _forumFetch.RemoteRawUrlOptions
+        });
+    }
+
+    // Persists the user's remote source URL selection to scraper-config.json.
+    // The URL must match one of the predefined RemoteRawUrlOptions entries.
+    [HttpPut("remote-data-source")]
+    public async Task<IActionResult> UpdateRemoteDataSource([FromBody] UpdateRemoteDataSourceRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.Url))
+            return BadRequest(new { error = "Url is required" });
+
+        var options = _forumFetch.RemoteRawUrlOptions;
+        if (options.Count > 0 && !options.Any(o => o.Url == request.Url))
+            return BadRequest(new { error = "Url does not match any configured option" });
+
+        // Persist via the existing scraper-config read/write path.
+        var scraperConfig = await _store.LoadConfig();
+        scraperConfig.RemoteRawUrl = request.Url;
+        await _store.SaveConfig(scraperConfig);
+
+        return Ok(new { sourceUrl = request.Url });
+    }
+
+    // Request body for the remote data source update endpoint.
+    public class UpdateRemoteDataSourceRequest
+    {
+        public string Url { get; set; } = "";
+    }
+
+    // Deletes all locally cached remote forum data files so the next check re-downloads everything.
+    // Removes mods-index.json, mods/ subtree, remote-bundle-meta.json, and the TTL timestamp file.
+    [HttpDelete("remote-data-cache")]
+    public IActionResult ClearRemoteDataCache()
+    {
+        string dataPath = _config["ResolvedDataPath"]
+            ?? Path.GetFullPath("../../data", AppContext.BaseDirectory);
+
+        int deleted = 0;
+
+        // Single flat files written by the fetch service.
+        foreach (var fileName in new[] { "mods-index.json", ForumDataFetchService.BundleMetaFileName, "remote-last-fetched.txt" })
+        {
+            var path = Path.Combine(dataPath, fileName);
+            if (System.IO.File.Exists(path))
+            {
+                System.IO.File.Delete(path);
+                deleted++;
+            }
+        }
+
+        // Per-topic detail files — delete the entire mods/ subtree.
+        var modsDir = Path.Combine(dataPath, "mods");
+        if (Directory.Exists(modsDir))
+        {
+            var detailFiles = Directory.GetFiles(modsDir, "detail.json", SearchOption.AllDirectories);
+            foreach (var f in detailFiles)
+            {
+                System.IO.File.Delete(f);
+                deleted++;
+            }
+        }
+
+        return Ok(new { deleted });
     }
 }
 

@@ -27,9 +27,21 @@ public class ForumDataRepoConfig
     public string? LocalRepoPath { get; set; }
 
     // Raw GitHub URL for the bundle JSON served to regular clients.
-    public string RemoteRawUrl { get; set; } =
-        "https://github.com/theRoastSuckling/QBForumModData/raw/refs/heads/main/forum-data-bundle.json";
+    // Canonical value lives in app-config.json — do not set a default here.
+    public string RemoteRawUrl { get; set; } = "";
 
     // How many hours between remote-fetch checks on client machines.
     public double FetchIntervalHours { get; set; } = 6;
+
+    // Predefined source options shown in the control-panel dropdown.
+    // Each entry may carry an optional Warning label displayed alongside the URL.
+    public List<RemoteRawUrlOption> RemoteRawUrlOptions { get; set; } = [];
+}
+
+// One selectable entry in the remote source dropdown.
+public class RemoteRawUrlOption
+{
+    public string Url { get; set; } = "";
+    // Optional warning tag shown in the dropdown (e.g. "Deprecated"). Null means no warning.
+    public string? Warning { get; set; }
 }

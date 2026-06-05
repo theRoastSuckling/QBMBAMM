@@ -10,6 +10,9 @@ public class ForumDataBundler
 {
     private readonly ILogger _log;
 
+    // Tags log events so the control-panel log pane can display them as "DATA" instead of "INF".
+    private ILogger DataLog => _log.ForContext("LogTag", "DATA");
+
     // Accepts a logger for progress/error reporting during bundle creation and unpacking.
     public ForumDataBundler(ILogger logger)
     {
@@ -70,7 +73,7 @@ public class ForumDataBundler
     // Called on client machines when the remote bundle is fresher than the local data.
     public async Task UnpackBundleAsync(ForumDataBundle bundle, JsonDataStore store, AssumedDownloadService assumed)
     {
-        _log.Information(
+        DataLog.Information(
             "Unpacking forum data bundle: {ModCount} mods, updatedAt={UpdatedAt:u}",
             bundle.Index.Count, bundle.UpdatedAt);
 
@@ -90,6 +93,6 @@ public class ForumDataBundler
 
         assumed.ImportCandidates(bundle.AssumedDownloads);
 
-        _log.Information("Bundle unpack complete");
+        DataLog.Information("Bundle unpack complete");
     }
 }

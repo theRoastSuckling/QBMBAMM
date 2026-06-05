@@ -210,6 +210,10 @@ public class ScraperConfig
     // When true, skips the remote forum data bundle fetch on startup and page load.
     // Opt in if you maintain your own local scrape and don't want it overwritten.
     public bool DisableRemoteForumDataFetch { get; set; } = false;
+
+    // User-selected remote source URL; overrides the app-config default when set.
+    // Null/empty = fall back to ForumDataRepoConfig.RemoteRawUrl from app-config.json.
+    public string? RemoteRawUrl { get; set; }
 }
 
 // Represents aggregate counts and storage usage for the scraped dataset.

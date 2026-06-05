@@ -5,7 +5,16 @@
   },
   "ForumDataRepo": {
     "LocalRepoPath": "../QBForumModData",
-    "RemoteRawUrl": "https://github.com/theRoastSuckling/QBForumModData/raw/refs/heads/main/forum-data-bundle.json",
-    "FetchIntervalHours": 6
+    "RemoteRawUrl": "https://raw.githubusercontent.com/wispborne/StarsectorModRepo/refs/heads/main/forum-data-bundle.json",
+    "FetchIntervalHours": 6,
+    "RemoteRawUrlOptions": [
+      {
+        "Url": "https://raw.githubusercontent.com/wispborne/StarsectorModRepo/refs/heads/main/forum-data-bundle.json"
+      },
+      {
+        "Url": "https://github.com/theRoastSuckling/QBForumModData/raw/refs/heads/main/forum-data-bundle.json",
+        "Warning": "Deprecated"
+      }
+    ]
   }
 }

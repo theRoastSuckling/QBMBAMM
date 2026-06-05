@@ -27,6 +27,16 @@ public class ForumDataFetchService : BackgroundService
     // Guards against concurrent fetch attempts triggered by rapid page loads.
     private int _isFetching;
 
+    // The app-config default URL, used as fallback when the user has not set an override in scraper-config.
+    public string DefaultRemoteRawUrl => _config.RemoteRawUrl;
+    // Returns the effective fetch interval, applying the same default as FetchInternalAsync.
+    public double FetchIntervalHours => _config.FetchIntervalHours > 0 ? _config.FetchIntervalHours : 6;
+    // Returns the predefined source options from app-config for the control-panel dropdown.
+    public IReadOnlyList<RemoteRawUrlOption> RemoteRawUrlOptions => _config.RemoteRawUrlOptions;
+
+    // Tags log events so the control-panel log pane can display them as "DATA" instead of "INF".
+    private ILogger DataLog => _log.ForContext("LogTag", "DATA");
+
     // Accepts data-path and services needed to unpack a fetched bundle into the local data folder.
     public ForumDataFetchService(
         ILogger logger,
@@ -85,11 +95,18 @@ public class ForumDataFetchService : BackgroundService
             return;
         }
 
-        if (string.IsNullOrWhiteSpace(_config.RemoteRawUrl))
+        // Scraper-config override takes precedence; falls back to the app-config default.
+        var effectiveUrl = !string.IsNullOrWhiteSpace(scraperConfig.RemoteRawUrl)
+            ? scraperConfig.RemoteRawUrl
+            : _config.RemoteRawUrl;
+
+        if (string.IsNullOrWhiteSpace(effectiveUrl))
         {
             _log.Warning("Remote forum data fetch skipped: RemoteRawUrl is not configured");
             return;
         }
+
+        DataLog.Information("Checking remote forum data bundle at {Url}", effectiveUrl);
 
         var lastFetchedPath = Path.Combine(_dataPath, LastFetchedFileName);
         var fetchInterval = TimeSpan.FromHours(_config.FetchIntervalHours > 0 ? _config.FetchIntervalHours : 6);
@@ -114,14 +131,14 @@ public class ForumDataFetchService : BackgroundService
         }
 
         if (force)
-            _log.Information("Force-fetching remote forum data bundle (bypassing TTL)");
+            DataLog.Information("Force-fetching remote forum data bundle (bypassing TTL)");
 
-        _log.Information("Fetching remote forum data bundle from {Url}", _config.RemoteRawUrl);
+        DataLog.Information("Fetching remote forum data bundle from {Url}", effectiveUrl);
 
         ForumDataBundle? bundle;
         try
         {
-            var json = await _http.GetStringAsync(_config.RemoteRawUrl, ct);
+            var json = await _http.GetStringAsync(effectiveUrl, ct);
             bundle = JsonSerializer.Deserialize<ForumDataBundle>(json, JsonOpts);
         }
         catch (Exception ex)
@@ -154,7 +171,7 @@ public class ForumDataFetchService : BackgroundService
             Path.Combine(_dataPath, BundleMetaFileName),
             JsonSerializer.Serialize(new { updatedAt = bundle.UpdatedAt }), ct);
 
-        _log.Information(
+        DataLog.Information(
             "Remote forum data applied: {ModCount} mods, bundleUpdatedAt={UpdatedAt:u}",
             bundle.Index.Count, bundle.UpdatedAt);
     }

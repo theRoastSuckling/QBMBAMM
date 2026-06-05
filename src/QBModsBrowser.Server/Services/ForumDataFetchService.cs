@@ -106,8 +106,6 @@ public class ForumDataFetchService : BackgroundService
             return;
         }
 
-        DataLog.Information("Checking remote forum data bundle at {Url}", effectiveUrl);
-
         var lastFetchedPath = Path.Combine(_dataPath, LastFetchedFileName);
         var fetchInterval = TimeSpan.FromHours(_config.FetchIntervalHours > 0 ? _config.FetchIntervalHours : 6);
 
@@ -130,6 +128,9 @@ public class ForumDataFetchService : BackgroundService
             }
         }
 
+        // Log only when a download is actually going to happen, not on every TTL check.
+        DataLog.Information("Checking remote forum data bundle at {Url}", effectiveUrl);
+
         if (force)
             DataLog.Information("Force-fetching remote forum data bundle (bypassing TTL)");
 
@@ -141,9 +142,32 @@ public class ForumDataFetchService : BackgroundService
             var json = await _http.GetStringAsync(effectiveUrl, ct);
             bundle = JsonSerializer.Deserialize<ForumDataBundle>(json, JsonOpts);
         }
+        catch (TaskCanceledException ex) when (!ct.IsCancellationRequested)
+        {
+            // Request timed out (not cancelled by app shutdown); ex is attached so @x reaches the log UI.
+            _log.Warning(ex,
+                "Failed to fetch remote forum data bundle — request timed out after {TimeoutSeconds}s. " +
+                "URL: {Url} | This may indicate a slow or blocked connection.",
+                _http.Timeout.TotalSeconds, effectiveUrl);
+            return;
+        }
+        catch (HttpRequestException ex)
+        {
+            // Network-level failure: DNS, TLS, connection refused, etc.; ex is attached so @x reaches the log UI.
+            _log.Warning(ex,
+                "Failed to fetch remote forum data bundle — HTTP error: {StatusCode} {Reason}. " +
+                "URL: {Url} | ExceptionType: {ExType} | Message: {ExMsg}",
+                (int?)ex.StatusCode, ex.StatusCode?.ToString() ?? "N/A",
+                effectiveUrl, ex.GetType().Name, ex.Message);
+            return;
+        }
         catch (Exception ex)
         {
-            _log.Warning(ex, "Failed to fetch remote forum data bundle");
+            // Unexpected failure; ex is attached so @x reaches the log UI.
+            _log.Warning(ex,
+                "Failed to fetch remote forum data bundle — unexpected error. " +
+                "URL: {Url} | ExceptionType: {ExType} | Message: {ExMsg}",
+                effectiveUrl, ex.GetType().Name, ex.Message);
             return;
         }
 

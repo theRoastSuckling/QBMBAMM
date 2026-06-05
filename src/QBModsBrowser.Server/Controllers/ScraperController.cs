@@ -18,6 +18,9 @@ public class ScraperController : ControllerBase
     private readonly PlaywrightService _playwright;
     private readonly ForumDataFetchService _forumFetch;
 
+    // Serilog.ILogger is not registered in DI (passed manually to singletons), so use the static Log directly.
+    private static readonly Serilog.ILogger Log = Serilog.Log.ForContext<ScraperController>();
+
     // Accepts ForumDataFetchService to support the force-refresh-remote-data endpoint.
     public ScraperController(
         ScraperOrchestrator orchestrator,
@@ -381,6 +384,26 @@ public class ScraperController : ControllerBase
         }
 
         return Ok(new { deleted });
+    }
+
+    // Logs a synthetic Warning and Error, each with a real attached exception, so the log UI exception
+    // dropdown can be verified without needing a real failure to occur.
+    [HttpPost("log-test-exception")]
+    public IActionResult LogTestException()
+    {
+        try
+        {
+            throw new InvalidOperationException(
+                "This is a test inner exception triggered from the control panel.",
+                new ArgumentNullException("testParam", "Inner: simulated null argument"));
+        }
+        catch (Exception ex)
+        {
+            Log.Warning(ex, "Test exception logged at Warning level — verify the stack-trace dropdown in the log pane");
+            Log.Error(ex, "Test exception logged at Error level — verify the stack-trace dropdown in the log pane");
+        }
+
+        return Ok(new { logged = true });
     }
 }
 

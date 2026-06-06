@@ -163,12 +163,15 @@ public class ModsController : ControllerBase
             var cached = _assumed.GetCachedCandidates(e.TopicId);
             if (cached is not { Count: > 0 }) continue;
 
+            // Only count candidates that can be auto-downloaded; manual-only candidates don't block one-click flow.
+            var nonManualCached = cached.Where(c => !c.RequiresManualStep).ToList();
+            var bestCached = nonManualCached.Count > 0 ? nonManualCached[0] : cached[0];
             e.HasAssumedDownload = true;
-            e.AssumedDownloadCount = cached.Count;
-            e.AssumedConfidence = cached[0].Confidence;
-            e.IsAssumedPatreonLink = cached.Count == 1 && IsPatreonUrl(cached[0].OriginalUrl);
-            // Flag the case where the only candidate needs manual user action (no one-click download possible).
-            e.AssumedRequiresManualStep = cached.Count == 1 && cached[0].RequiresManualStep;
+            e.AssumedDownloadCount = nonManualCached.Count;
+            e.AssumedConfidence = bestCached.Confidence;
+            e.IsAssumedPatreonLink = nonManualCached.Count == 0 && cached.Count == 1 && IsPatreonUrl(cached[0].OriginalUrl);
+            // Flag the case where all candidates need manual user action (no one-click download possible).
+            e.AssumedRequiresManualStep = nonManualCached.Count == 0;
 
             ApplyAssumedDownloadOverride(e, cached);
         }
@@ -355,8 +358,10 @@ public class ModsController : ControllerBase
         var assumedDownloads = _assumed.GetCachedCandidates(id) ?? [];
         if (context.EnrichedSummary != null)
         {
+            // Count only auto-downloadable candidates so the summary card skips "multiple/unclear" when only one is actionable.
+            var nonManual = assumedDownloads.Where(c => !c.RequiresManualStep).ToList();
             context.EnrichedSummary.HasAssumedDownload = assumedDownloads.Count > 0;
-            context.EnrichedSummary.AssumedDownloadCount = assumedDownloads.Count;
+            context.EnrichedSummary.AssumedDownloadCount = nonManual.Count;
             ApplyAssumedDownloadOverride(context.EnrichedSummary, assumedDownloads);
         }
 
@@ -417,8 +422,10 @@ public class ModsController : ControllerBase
 
         if (context.EnrichedSummary != null)
         {
+            // Count only auto-downloadable candidates so the summary card skips "multiple/unclear" when only one is actionable.
+            var nonManual = assumedDownloads.Where(c => !c.RequiresManualStep).ToList();
             context.EnrichedSummary.HasAssumedDownload = assumedDownloads.Count > 0;
-            context.EnrichedSummary.AssumedDownloadCount = assumedDownloads.Count;
+            context.EnrichedSummary.AssumedDownloadCount = nonManual.Count;
             ApplyAssumedDownloadOverride(context.EnrichedSummary, assumedDownloads);
         }
 

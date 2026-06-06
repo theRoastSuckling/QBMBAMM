@@ -210,11 +210,23 @@
                             </div>
                         </div>
 
-                        <!-- No Playwright: show explanation and optional install UI. -->
+                        <!-- No Playwright / outdated Chromium: context-sensitive heading, explanation, and install button. -->
                         <div x-show="!panel.playwrightInstalled" class="bg-surface-alt rounded-lg border border-gray-700 p-4 space-y-4">
                             <div>
-                                <h3 class="text-sm font-semibold text-white mb-1">Forum scraping</h3>
-                                <p class="text-xs text-gray-400 leading-relaxed">
+                                <!-- Heading: generic when status unknown, otherwise reflects actual state. -->
+                                <h3 class="text-sm font-semibold text-white mb-1"
+                                    x-text="panel.playwrightBrowserStatus === 'outdated' ? 'Chromium update required' : 'Forum scraping'"></h3>
+
+                                <!-- Outdated: explain the version mismatch. -->
+                                <p x-show="panel.playwrightBrowserStatus === 'outdated'"
+                                    class="text-xs text-amber-400 leading-relaxed">
+                                    An installed Chromium revision was found, but Playwright requires a newer one.
+                                    Click below to download the correct revision (~300 MB).
+                                </p>
+
+                                <!-- Not installed / unknown: standard explanation. -->
+                                <p x-show="panel.playwrightBrowserStatus !== 'outdated'"
+                                    class="text-xs text-gray-400 leading-relaxed">
                                     Scraping isn't needed if remote mod data is recent enough. It is automatically fetched from the
                                     <a href="https://github.com/theRoastSuckling/QBForumModData" target="_blank" rel="noopener"
                                         class="text-accent hover:underline">QBForumModData repository</a>.
@@ -222,14 +234,15 @@
                                 </p>
                             </div>
 
-                            <!-- Install Playwright button and progress log. -->
+                            <!-- Install / update button and progress log. Button label adapts to the detected state. -->
                             <div>
                                 <button
                                     @click="panel.installPlaywright()"
                                     :disabled="panel.playwrightInstall.running"
                                     class="px-3 py-1.5 rounded text-xs font-medium transition bg-surface-raised text-gray-300 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
                                     <span x-show="panel.playwrightInstall.running" class="w-2 h-2 rounded-full bg-amber-500 pulse-glow shrink-0"></span>
-                                    <span x-show="!panel.playwrightInstall.running">Install Playwright (Chromium)</span>
+                                    <span x-show="!panel.playwrightInstall.running"
+                                        x-text="panel.playwrightBrowserStatus === 'outdated' ? 'Update Chromium' : 'Install Playwright (Chromium)'"></span>
                                     <span x-show="panel.playwrightInstall.running">Installing…</span>
                                 </button>
                                 <p class="text-[10px] text-gray-600 mt-1">
@@ -348,14 +361,14 @@
                                         <label class="text-xs text-gray-400 block">Scope</label>
                                         <div class="flex flex-wrap gap-2">
                                             <button class="px-3 py-1.5 rounded text-xs transition"
+                                                :class="panel.scope === 'pages' ? 'bg-accent text-white' : 'bg-surface-raised text-gray-300 hover:bg-gray-600'"
+                                                @click="panel.scope = 'pages'">Recent</button>
+                                            <button class="px-3 py-1.5 rounded text-xs transition"
                                                 :class="panel.scope === 'new' ? 'bg-accent text-white' : 'bg-surface-raised text-gray-300 hover:bg-gray-600'"
-                                                @click="panel.scope = 'new'">New Data</button>
+                                                @click="panel.scope = 'new'">w/ New Comments</button>
                                             <button class="px-3 py-1.5 rounded text-xs transition"
                                                 :class="panel.scope === 'all' ? 'bg-accent text-white' : 'bg-surface-raised text-gray-300 hover:bg-gray-600'"
                                                 @click="panel.scope = 'all'">All Pages</button>
-                                            <button class="px-3 py-1.5 rounded text-xs transition"
-                                                :class="panel.scope === 'pages' ? 'bg-accent text-white' : 'bg-surface-raised text-gray-300 hover:bg-gray-600'"
-                                                @click="panel.scope = 'pages'">First N Pages</button>
                                             <button class="px-3 py-1.5 rounded text-xs transition"
                                                 :class="panel.scope === 'topics' ? 'bg-accent text-white' : 'bg-surface-raised text-gray-300 hover:bg-gray-600'"
                                                 @click="panel.scope = 'topics'">Specific Topics</button>
@@ -363,27 +376,52 @@
                                         <div x-show="panel.scope !== 'topics'">
                                             <label class="text-xs text-gray-400 block mb-1.5">Boards</label>
                                             <div class="flex flex-wrap gap-2">
-                                                <button class="relative group px-3 py-1.5 rounded text-xs transition"
+                                                <button class="relative group flex items-center gap-1 px-3 py-1.5 rounded text-xs transition"
                                                     :class="panel.boards.main ? 'bg-accent text-white' : 'bg-surface-raised text-gray-300 hover:bg-gray-600'"
                                                     @click="panel.toggleBoard('main')">
                                                     <span class="pointer-events-none absolute bottom-full left-1/2 z-50 mb-1 -translate-x-1/2 whitespace-nowrap rounded bg-gray-900 px-2 py-0.5 text-[10px] font-medium text-white opacity-0 shadow-lg transition-opacity duration-0 group-hover:opacity-100">Main mods board (board 8)</span>
-                                                    Main (8)</button>
-                                                <button class="relative group px-3 py-1.5 rounded text-xs transition"
+                                                    Main (8)
+                                                    <span @click.stop="window.open('https://fractalsoftworks.com/forum/index.php?board=8.0', '_blank')" class="opacity-60 hover:opacity-100 cursor-pointer ml-0.5" title="Open board 8 in new tab">
+                                                        <iconify-icon icon="heroicons:arrow-top-right-on-square" width="11" height="11"></iconify-icon>
+                                                    </span>
+                                                </button>
+                                                <button class="relative group flex items-center gap-1 px-3 py-1.5 rounded text-xs transition"
                                                     :class="panel.boards.lesser ? 'bg-accent text-white' : 'bg-surface-raised text-gray-300 hover:bg-gray-600'"
                                                     @click="panel.toggleBoard('lesser')">
                                                     <span class="pointer-events-none absolute bottom-full left-1/2 z-50 mb-1 -translate-x-1/2 whitespace-nowrap rounded bg-gray-900 px-2 py-0.5 text-[10px] font-medium text-white opacity-0 shadow-lg transition-opacity duration-0 group-hover:opacity-100">Lesser mods board (board 3) — capped at 20 pages</span>
-                                                    Lesser (3)</button>
-                                                <button class="relative group px-3 py-1.5 rounded text-xs transition"
+                                                    Lesser (3)
+                                                    <span @click.stop="window.open('https://fractalsoftworks.com/forum/index.php?board=3.0', '_blank')" class="opacity-60 hover:opacity-100 cursor-pointer ml-0.5" title="Open board 3 in new tab">
+                                                        <iconify-icon icon="heroicons:arrow-top-right-on-square" width="11" height="11"></iconify-icon>
+                                                    </span>
+                                                </button>
+                                                <button class="relative group flex items-center gap-1 px-3 py-1.5 rounded text-xs transition"
                                                     :class="panel.boards.libraries ? 'bg-accent text-white' : 'bg-surface-raised text-gray-300 hover:bg-gray-600'"
                                                     @click="panel.toggleBoard('libraries')">
                                                     <span class="pointer-events-none absolute bottom-full left-1/2 z-50 mb-1 -translate-x-1/2 whitespace-nowrap rounded bg-gray-900 px-2 py-0.5 text-[10px] font-medium text-white opacity-0 shadow-lg transition-opacity duration-0 group-hover:opacity-100">Modding Resources board (board 9)</span>
-                                                    Libraries (9)</button>
+                                                    Libraries (9)
+                                                    <span @click.stop="window.open('https://fractalsoftworks.com/forum/index.php?board=9.0', '_blank')" class="opacity-60 hover:opacity-100 cursor-pointer ml-0.5" title="Open board 9 in new tab">
+                                                        <iconify-icon icon="heroicons:arrow-top-right-on-square" width="11" height="11"></iconify-icon>
+                                                    </span>
+                                                </button>
                                             </div>
                                         </div>
-                                        <div x-show="panel.scope === 'pages'" class="flex items-center gap-2">
-                                            <label class="text-xs text-gray-400">Pages:</label>
-                                            <input type="number" min="1" max="34" x-model.number="panel.maxPages"
-                                                class="w-20 bg-surface border border-gray-600 rounded px-2 py-1 text-sm">
+                                        <!-- Per-board page inputs for Recent scope; also used by auto-scrape. -->
+                                        <div x-show="panel.scope === 'pages'" class="space-y-1.5">
+                                            <div class="flex items-center gap-2">
+                                                <label class="text-xs text-gray-400 w-20">Main (8):</label>
+                                                <div class="panel-number-wrap"><input type="number" min="1" max="34" x-model.number="panel.pagesMain" @change="panel.saveConfig({silent:true})" class="panel-number-input" style="width:3.8rem"><div class="panel-stepper"><button type="button" class="panel-stepper-btn" @click="panel.pagesMain=Math.min(34,(panel.pagesMain||1)+1);panel.saveConfig({silent:true})"><svg class="w-2.5 h-2.5" viewBox="0 0 20 20" fill="currentColor"><path d="M5 12l5-5 5 5H5z"/></svg></button><button type="button" class="panel-stepper-btn" @click="panel.pagesMain=Math.max(1,(panel.pagesMain||1)-1);panel.saveConfig({silent:true})"><svg class="w-2.5 h-2.5" viewBox="0 0 20 20" fill="currentColor"><path d="M5 8l5 5 5-5H5z"/></svg></button></div></div>
+                                                <span class="text-xs text-gray-500">pages</span>
+                                            </div>
+                                            <div class="flex items-center gap-2">
+                                                <label class="text-xs text-gray-400 w-20">Lesser (3):</label>
+                                                <div class="panel-number-wrap"><input type="number" min="1" max="20" x-model.number="panel.pagesLesser" @change="panel.saveConfig({silent:true})" class="panel-number-input" style="width:3.8rem"><div class="panel-stepper"><button type="button" class="panel-stepper-btn" @click="panel.pagesLesser=Math.min(20,(panel.pagesLesser||1)+1);panel.saveConfig({silent:true})"><svg class="w-2.5 h-2.5" viewBox="0 0 20 20" fill="currentColor"><path d="M5 12l5-5 5 5H5z"/></svg></button><button type="button" class="panel-stepper-btn" @click="panel.pagesLesser=Math.max(1,(panel.pagesLesser||1)-1);panel.saveConfig({silent:true})"><svg class="w-2.5 h-2.5" viewBox="0 0 20 20" fill="currentColor"><path d="M5 8l5 5 5-5H5z"/></svg></button></div></div>
+                                                <span class="text-xs text-gray-500">pages</span>
+                                            </div>
+                                            <div class="flex items-center gap-2">
+                                                <label class="text-xs text-gray-400 w-20">Libraries (9):</label>
+                                                <div class="panel-number-wrap"><input type="number" min="1" max="34" x-model.number="panel.pagesLibraries" @change="panel.saveConfig({silent:true})" class="panel-number-input" style="width:3.8rem"><div class="panel-stepper"><button type="button" class="panel-stepper-btn" @click="panel.pagesLibraries=Math.min(34,(panel.pagesLibraries||1)+1);panel.saveConfig({silent:true})"><svg class="w-2.5 h-2.5" viewBox="0 0 20 20" fill="currentColor"><path d="M5 12l5-5 5 5H5z"/></svg></button><button type="button" class="panel-stepper-btn" @click="panel.pagesLibraries=Math.max(1,(panel.pagesLibraries||1)-1);panel.saveConfig({silent:true})"><svg class="w-2.5 h-2.5" viewBox="0 0 20 20" fill="currentColor"><path d="M5 8l5 5 5-5H5z"/></svg></button></div></div>
+                                                <span class="text-xs text-gray-500">pages</span>
+                                            </div>
                                         </div>
                                         <div x-show="panel.scope === 'topics'">
                                             <label class="text-xs text-gray-400 block mb-1">Topic IDs (comma-separated):</label>
@@ -453,14 +491,12 @@
                                                     @change="panel.saveConfig({ silent: true })"
                                                     class="panel-number-input">
                                                 <div class="panel-stepper">
-                                                    <button type="button" class="relative group panel-stepper-btn"
+                                                    <button type="button" class="panel-stepper-btn"
                                                         @click="panel.config.delayBetweenPagesMs = Math.max(500, Number(panel.config.delayBetweenPagesMs || 500) + 100); panel.saveConfig({ silent: true })">
-                                                        <span class="pointer-events-none absolute bottom-full left-1/2 z-50 mb-1 -translate-x-1/2 whitespace-nowrap rounded bg-gray-900 px-2 py-0.5 text-[10px] font-medium text-white opacity-0 shadow-lg transition-opacity duration-0 group-hover:opacity-100">Increase</span>
                                                         <svg class="w-2.5 h-2.5" viewBox="0 0 20 20" fill="currentColor"><path d="M5 12l5-5 5 5H5z"/></svg>
                                                     </button>
-                                                    <button type="button" class="relative group panel-stepper-btn"
+                                                    <button type="button" class="panel-stepper-btn"
                                                         @click="panel.config.delayBetweenPagesMs = Math.max(500, Number(panel.config.delayBetweenPagesMs || 500) - 100); panel.saveConfig({ silent: true })">
-                                                        <span class="pointer-events-none absolute bottom-full left-1/2 z-50 mb-1 -translate-x-1/2 whitespace-nowrap rounded bg-gray-900 px-2 py-0.5 text-[10px] font-medium text-white opacity-0 shadow-lg transition-opacity duration-0 group-hover:opacity-100">Decrease</span>
                                                         <svg class="w-2.5 h-2.5" viewBox="0 0 20 20" fill="currentColor"><path d="M5 8l5 5 5-5H5z"/></svg>
                                                     </button>
                                                 </div>
@@ -473,14 +509,12 @@
                                                     @change="panel.saveConfig({ silent: true })"
                                                     class="panel-number-input">
                                                 <div class="panel-stepper">
-                                                    <button type="button" class="relative group panel-stepper-btn"
+                                                    <button type="button" class="panel-stepper-btn"
                                                         @click="panel.config.delayBetweenTopicsMs = Math.max(500, Number(panel.config.delayBetweenTopicsMs || 500) + 100); panel.saveConfig({ silent: true })">
-                                                        <span class="pointer-events-none absolute bottom-full left-1/2 z-50 mb-1 -translate-x-1/2 whitespace-nowrap rounded bg-gray-900 px-2 py-0.5 text-[10px] font-medium text-white opacity-0 shadow-lg transition-opacity duration-0 group-hover:opacity-100">Increase</span>
                                                         <svg class="w-2.5 h-2.5" viewBox="0 0 20 20" fill="currentColor"><path d="M5 12l5-5 5 5H5z"/></svg>
                                                     </button>
-                                                    <button type="button" class="relative group panel-stepper-btn"
+                                                    <button type="button" class="panel-stepper-btn"
                                                         @click="panel.config.delayBetweenTopicsMs = Math.max(500, Number(panel.config.delayBetweenTopicsMs || 500) - 100); panel.saveConfig({ silent: true })">
-                                                        <span class="pointer-events-none absolute bottom-full left-1/2 z-50 mb-1 -translate-x-1/2 whitespace-nowrap rounded bg-gray-900 px-2 py-0.5 text-[10px] font-medium text-white opacity-0 shadow-lg transition-opacity duration-0 group-hover:opacity-100">Decrease</span>
                                                         <svg class="w-2.5 h-2.5" viewBox="0 0 20 20" fill="currentColor"><path d="M5 8l5 5 5-5H5z"/></svg>
                                                     </button>
                                                 </div>
@@ -508,14 +542,12 @@
                                                     @change="panel.saveConfig({ silent: true })"
                                                     class="panel-number-input">
                                                 <div class="panel-stepper">
-                                                    <button type="button" class="relative group panel-stepper-btn"
+                                                    <button type="button" class="panel-stepper-btn"
                                                         @click="panel.config.autoScrapeIntervalHours = Math.max(0, Number(panel.config.autoScrapeIntervalHours || 0) + 0.5); panel.saveConfig({ silent: true })">
-                                                        <span class="pointer-events-none absolute bottom-full left-1/2 z-50 mb-1 -translate-x-1/2 whitespace-nowrap rounded bg-gray-900 px-2 py-0.5 text-[10px] font-medium text-white opacity-0 shadow-lg transition-opacity duration-0 group-hover:opacity-100">Increase</span>
                                                         <svg class="w-2.5 h-2.5" viewBox="0 0 20 20" fill="currentColor"><path d="M5 12l5-5 5 5H5z"/></svg>
                                                     </button>
-                                                    <button type="button" class="relative group panel-stepper-btn"
+                                                    <button type="button" class="panel-stepper-btn"
                                                         @click="panel.config.autoScrapeIntervalHours = Math.max(0, Number(panel.config.autoScrapeIntervalHours || 0) - 0.5); panel.saveConfig({ silent: true })">
-                                                        <span class="pointer-events-none absolute bottom-full left-1/2 z-50 mb-1 -translate-x-1/2 whitespace-nowrap rounded bg-gray-900 px-2 py-0.5 text-[10px] font-medium text-white opacity-0 shadow-lg transition-opacity duration-0 group-hover:opacity-100">Decrease</span>
                                                         <svg class="w-2.5 h-2.5" viewBox="0 0 20 20" fill="currentColor"><path d="M5 8l5 5 5-5H5z"/></svg>
                                                     </button>
                                                 </div>

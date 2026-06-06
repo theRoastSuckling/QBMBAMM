@@ -1,4 +1,9 @@
 [x-cloak] { display: none !important; }
+
+/* Globally hide native browser spinners on number inputs — use panel-stepper for custom increment UI. */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+input[type="number"] { appearance: textfield; -moz-appearance: textfield; }
 html {
     /* Reliable on Windows: keep gutter reserved to avoid horizontal jump */
     overflow-y: scroll;

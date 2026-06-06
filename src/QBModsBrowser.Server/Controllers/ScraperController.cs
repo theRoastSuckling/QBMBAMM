@@ -51,6 +51,7 @@ public class ScraperController : ControllerBase
             state = job.State.ToString().ToLowerInvariant(),
             isScraping = _orchestrator.IsScraping,
             isPlaywrightInstalled = _playwright.IsInstalled(),
+            playwrightBrowserStatus = _playwright.GetBrowserStatus(),
             job = new
             {
                 job.Id,
@@ -86,11 +87,14 @@ public class ScraperController : ControllerBase
         });
     }
 
-    // StartRequest carries scope, optional page count, topic IDs, and board selection flags.
+    // StartRequest carries scope, per-board page counts, topic IDs, and board selection flags.
     public class StartRequest
     {
         public string Scope { get; set; } = "all";
-        public int? Pages { get; set; }
+        // Per-board page limits for scope=pages; each defaults to scraping all pages when omitted.
+        public int? PagesMain      { get; set; }
+        public int? PagesLesser    { get; set; }
+        public int? PagesLibraries { get; set; }
         public List<int>? TopicIds { get; set; }
         /// <summary>Which boards to include: "main", "lesser", "libraries". Null/empty defaults to Main+Libraries.</summary>
         public List<string>? Boards { get; set; }
@@ -109,7 +113,9 @@ public class ScraperController : ControllerBase
                 break;
             case "pages":
                 scope.Type = ScopeType.Pages;
-                scope.MaxPages = request.Pages ?? 1;
+                scope.MaxPagesMain      = request.PagesMain;
+                scope.MaxPagesLesser    = request.PagesLesser;
+                scope.MaxPagesLibraries = request.PagesLibraries;
                 break;
             case "topics":
                 scope.Type = ScopeType.Topics;

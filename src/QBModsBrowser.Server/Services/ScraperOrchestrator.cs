@@ -239,8 +239,8 @@ public class ScraperOrchestrator : BackgroundService
 
                     if (DateTime.UtcNow >= nextRun)
                     {
-                        _log.Information("Auto-scrape triggered (interval: {Hours}h)", config.AutoScrapeIntervalHours);
-                        await StartScrape(new ScrapeScope { Type = ScopeType.NewData });
+                        _log.Information("Auto-scrape triggered (interval: {Hours}h, scope: {Scope})", config.AutoScrapeIntervalHours, config.DefaultScope.Type);
+                        await StartScrape(config.DefaultScope);
                     }
                 }
             }

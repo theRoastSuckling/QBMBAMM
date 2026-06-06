@@ -123,12 +123,26 @@ public class JsonDataStore
         await File.WriteAllTextAsync(path, json);
     }
 
-    // Normalizes auto-scope config so scheduled runs always use NewData.
+    // Ensures DefaultScope has sane defaults when missing or left from old forced-NewData normalization.
     private static void NormalizeAutoScope(ScraperConfig config)
     {
-        config.DefaultScope ??= new ScrapeScope();
-        config.DefaultScope.Type = ScopeType.NewData;
-        config.DefaultScope.MaxPages = null;
+        if (config.DefaultScope == null)
+        {
+            config.DefaultScope = ScrapeScope.DefaultRecent();
+            return;
+        }
+
+        // Migrate old configs that had NewData forced by the previous NormalizeAutoScope.
+        // If none of the per-board page counts were ever set, this was never a deliberate NewData choice.
+        bool hasExplicitPageCounts = config.DefaultScope.MaxPagesMain.HasValue
+            || config.DefaultScope.MaxPagesLesser.HasValue
+            || config.DefaultScope.MaxPagesLibraries.HasValue;
+        if (config.DefaultScope.Type == ScopeType.NewData && !hasExplicitPageCounts)
+            config.DefaultScope = ScrapeScope.DefaultRecent();
+
+        // Topics scope makes no sense as an auto-scrape default; fall back to Pages.
+        if (config.DefaultScope.Type == ScopeType.Topics)
+            config.DefaultScope.Type = ScopeType.Pages;
         config.DefaultScope.TopicIds = null;
     }
 
@@ -189,7 +203,8 @@ public class JsonDataStore
 public class ScraperConfig
 {
     public double AutoScrapeIntervalHours { get; set; }
-    public ScrapeScope DefaultScope { get; set; } = new() { Type = ScopeType.NewData };
+    // Default scope used for auto-scrape; single source of truth is ScrapeScope.DefaultRecent().
+    public ScrapeScope DefaultScope { get; set; } = ScrapeScope.DefaultRecent();
     public int DelayBetweenPagesMs { get; set; } = 1500;
     public int DelayBetweenTopicsMs { get; set; } = 1500;
     public bool DefaultSpoilersOpen { get; set; }

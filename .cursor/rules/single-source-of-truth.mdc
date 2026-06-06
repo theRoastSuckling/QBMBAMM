@@ -1,0 +1,11 @@
+---
+description: Enforce single source of truth for constants and defaults
+alwaysApply: true
+---
+# Single Source of Truth for Defaults and Constants
+
+When a default value, magic number, or configuration constant appears in more than one place, extract it to a single definition and reference it everywhere.
+
+- C#: use a `static` factory method, `const`, or `static readonly` field on the most relevant type.
+- JS/TS: define a `const` at the top of the module; never repeat literals in multiple functions.
+- Never duplicate the same literal in both a property initializer and a normalization/migration method — point both at the same definition.

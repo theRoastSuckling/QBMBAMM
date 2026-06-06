@@ -249,6 +249,20 @@ internal static class Program
         // Build the system tray icon; it lives until the user clicks Exit.
         using var tray = new TrayApp(AppUrl);
 
+        // Resolve the exact Chromium path this Playwright version expects so IsInstalled() is
+        // precise from the first status poll, without waiting for a scrape attempt to fail.
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await app.Services.GetRequiredService<PlaywrightService>().InitializeAsync();
+            }
+            catch (Exception ex)
+            {
+                Log.Warning(ex, "Playwright initialization failed (non-fatal)");
+            }
+        });
+
         // Initialize mod manager services in background, then warm version-checker cache.
         _ = Task.Run(async () =>
         {

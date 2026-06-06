@@ -158,7 +158,7 @@ public class ScraperEngine : IAsyncDisposable
             }
             else
             {
-                int? maxPages = scope.Type == ScopeType.Pages ? scope.MaxPages : null;
+                bool isPages = scope.Type == ScopeType.Pages;
                 bool isNewData = scope.Type == ScopeType.NewData;
 
                 var mainList = new List<ModSummary>();
@@ -168,6 +168,7 @@ public class ScraperEngine : IAsyncDisposable
                 // Scrape main mods board (board 8) when enabled.
                 if (scope.Boards.HasFlag(ScrapeBoards.Main))
                 {
+                    int? maxPagesMain = isPages ? scope.MaxPagesMain : null;
                     Func<IReadOnlyList<ModSummary>, bool>? shouldContinueMain = isNewData
                         ? pageMods => pageMods.Any(m => IsNewOrLastPostChanged(m, indexMap))
                         : null;
@@ -175,7 +176,7 @@ public class ScraperEngine : IAsyncDisposable
                     CurrentJob.CurrentPhase = "Mods board (8)";
                     mainList = await boardScraper.ScrapeAllPages(
                         page,
-                        maxPages,
+                        maxPagesMain,
                         ct,
                         shouldContinueMain,
                         sortByLastPostDesc: isNewData);
@@ -192,7 +193,7 @@ public class ScraperEngine : IAsyncDisposable
                 if (scope.Boards.HasFlag(ScrapeBoards.Lesser))
                 {
                     int lesserMax = Math.Min(
-                        scope.MaxPages ?? ForumConstants.LesserBoardMaxPages,
+                        scope.MaxPagesLesser ?? ForumConstants.LesserBoardMaxPages,
                         ForumConstants.LesserBoardMaxPages);
 
                     Func<IReadOnlyList<ModSummary>, bool>? shouldContinueLesser = isNewData
@@ -221,6 +222,7 @@ public class ScraperEngine : IAsyncDisposable
                 // Scrape libraries board (board 9) when enabled.
                 if (scope.Boards.HasFlag(ScrapeBoards.Libraries))
                 {
+                    int? maxPagesLibraries = isPages ? scope.MaxPagesLibraries : null;
                     Func<IReadOnlyList<ModSummary>, bool>? shouldContinueLibrary = null;
                     if (isNewData)
                     {
@@ -237,7 +239,7 @@ public class ScraperEngine : IAsyncDisposable
                     CurrentJob.CurrentPhase = "Library board (9)";
                     libraryList = await boardScraper.ScrapeAllPages(
                         page,
-                        maxPages,
+                        maxPagesLibraries,
                         ct,
                         shouldContinueLibrary,
                         sortByLastPostDesc: true,

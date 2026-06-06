@@ -32,14 +32,27 @@ public enum ScrapeBoards
     Libraries = 4
 }
 
-// Parameters that control what a scrape run covers: scope type, page limit, topic list, and boards.
+// Parameters that control what a scrape run covers: scope type, per-board page limits, topic list, and boards.
 public class ScrapeScope
 {
     public ScopeType Type { get; set; } = ScopeType.All;
-    public int? MaxPages { get; set; }
+    // Per-board page limits used when Type == Pages; null means scrape all pages for that board.
+    public int? MaxPagesMain      { get; set; }   // board 8
+    public int? MaxPagesLesser    { get; set; }   // board 3
+    public int? MaxPagesLibraries { get; set; }   // board 9
     public List<int>? TopicIds { get; set; }
     /// <summary>Which boards to include; defaults to Main+Libraries (current behavior). Ignored for LibrariesOnly and Topics.</summary>
     public ScrapeBoards Boards { get; set; } = ScrapeBoards.Main | ScrapeBoards.Libraries;
+
+    // Single source of truth for the "Recent" auto-scrape defaults used in config init and normalization.
+    public static ScrapeScope DefaultRecent() => new()
+    {
+        Type = ScopeType.Pages,
+        Boards = ScrapeBoards.Main | ScrapeBoards.Lesser | ScrapeBoards.Libraries,
+        MaxPagesMain = 15,
+        MaxPagesLesser = 15,
+        MaxPagesLibraries = 3
+    };
 }
 
 // Mutable state for the running or most-recent scrape job, polled by the UI for progress.

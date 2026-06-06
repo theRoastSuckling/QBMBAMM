@@ -7,10 +7,13 @@ function createPanelState() {
         scrapeSectionExpanded: false,
         status: { state: 'idle', isScraping: false, job: {}, stats: {} },
         config: { autoScrapeIntervalHours: 0, delayBetweenPagesMs: 1500, delayBetweenTopicsMs: 1500, defaultSpoilersOpen: false, openLinksInNewTab: true, cacheExternalImages: false },
-        scope: 'new',
+        scope: 'pages',
         // Per-board toggles sent with board-based scopes (new/all/pages).
         boards: { main: true, lesser: true, libraries: true },
-        maxPages: 1,
+        // Per-board page counts for the "Recent" scope; populated from server config on panel open.
+        pagesMain: null,
+        pagesLesser: null,
+        pagesLibraries: null,
         topicIdsStr: '',
         message: '',
         configSaved: false,
@@ -19,6 +22,8 @@ function createPanelState() {
         extCacheClearing: false,
         // null = not yet known; set from isPlaywrightInstalled in the scraper status response.
         playwrightInstalled: null,
+        // Fine-grained Playwright browser status: "installed" | "outdated" | "not_installed" | null (unknown).
+        playwrightBrowserStatus: null,
         // Remote bundle metadata: timestamps, mod/detail counts, disk size, source URL, fetch interval, and source options.
         remoteDataInfo: { updatedAt: null, lastFetched: null, modCount: null, detailCount: null, dataSize: null, sourceUrl: null, fetchIntervalHours: null, sourceOptions: [] },
         // Live install progress state.
@@ -62,10 +67,12 @@ function createPanelState() {
                 this.status = data;
                 if (data.isPlaywrightInstalled !== undefined)
                     this.playwrightInstalled = data.isPlaywrightInstalled;
+                if (data.playwrightBrowserStatus !== undefined)
+                    this.playwrightBrowserStatus = data.playwrightBrowserStatus;
             } catch (_) {}
         },
 
-        // Loads scraper settings into the panel form.
+        // Loads scraper settings into the panel form and initializes per-board page counts from defaultScope.
         async fetchConfig() {
             try {
                 const res = await fetch('/api/scraper/config');
@@ -81,6 +88,12 @@ function createPanelState() {
                 };
                 this.config.openLinksInNewTab = (cfg.openLinksInNewTab ?? cfg.openModLinksInNewTab) !== false;
                 this.config.cacheExternalImages = cfg.cacheExternalImages === true;
+                // Restore per-board Recent page counts from the persisted defaultScope.
+                // The backend always returns normalized values, so no client-side fallbacks needed.
+                const ds = cfg.defaultScope || {};
+                this.pagesMain      = ds.maxPagesMain;
+                this.pagesLesser    = ds.maxPagesLesser;
+                this.pagesLibraries = ds.maxPagesLibraries;
             } catch (_) {}
         },
 
@@ -185,7 +198,11 @@ function createPanelState() {
         async startScrape() {
             this.message = '';
             const body = { scope: this.scope };
-            if (this.scope === 'pages') body.pages = this.maxPages;
+            if (this.scope === 'pages') {
+                body.pagesMain      = this.pagesMain;
+                body.pagesLesser    = this.pagesLesser;
+                body.pagesLibraries = this.pagesLibraries;
+            }
             if (this.scope === 'topics') {
                 body.topicIds = this.topicIdsStr.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n));
             }
@@ -221,11 +238,23 @@ function createPanelState() {
         },
 
         // Persists scraper settings and shows brief saved feedback.
+        // Always writes the current per-board page counts into defaultScope so auto-scrape stays in sync.
         async saveConfig(opts = {}) {
             const silent = !!opts.silent;
             try {
+                // ScopeType.Pages=2, ScrapeBoards Main|Lesser|Libraries=7 (integer enums).
+                const payload = {
+                    ...this.config,
+                    defaultScope: {
+                        type: 2,
+                        boards: 7,
+                        maxPagesMain:      this.pagesMain,
+                        maxPagesLesser:    this.pagesLesser,
+                        maxPagesLibraries: this.pagesLibraries
+                    }
+                };
                 await fetch('/api/scraper/config', {
-                    method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(this.config)
+                    method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
                 });
                 this.configSaved = true;
                 setTimeout(() => { this.configSaved = false; }, 1400);

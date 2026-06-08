@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <TargetFramework>net10.0-windows</TargetFramework>
@@ -28,15 +28,12 @@
 
   <!--
     Builds the production Tailwind CSS bundle before compilation so wwwroot/tailwind.css
-    exists when dotnet build / dotnet publish embeds static assets. Requires npm + Node.js.
-    npm.cmd is the Windows wrapper; Linux/macOS use plain npm.
+    exists when dotnet build / dotnet publish embeds static assets.
+    Uses the standalone Tailwind CLI binary (tools/tailwindcss.exe) — no Node.js or npm required.
   -->
-  <PropertyGroup>
-    <NpmExecutable Condition="'$(OS)' == 'Windows_NT'">npm.cmd</NpmExecutable>
-    <NpmExecutable Condition="'$(OS)' != 'Windows_NT'">npm</NpmExecutable>
-  </PropertyGroup>
   <Target Name="BuildTailwindCSS" BeforeTargets="Build">
-    <Exec Command="$(NpmExecutable) run build:css" WorkingDirectory="$(MSBuildProjectDirectory)\..\..\" />
+    <Exec Command="tools\tailwindcss.exe -i src\QBModsBrowser.Server\wwwroot\tailwind-input.css -o src\QBModsBrowser.Server\wwwroot\tailwind.css --minify"
+          WorkingDirectory="$(MSBuildProjectDirectory)\..\..\" />
   </Target>
 
   <!--

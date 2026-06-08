@@ -8,7 +8,7 @@ obj/
 .vs/
 
 ## Data & logs (scraped content)
-# Track data/ JSON and mods/ for releases: publish.sh copies repo data/ into the zip then removes
+# Track data/ JSON and mods/ for releases: publish.ps1 copies repo data/ into the zip then removes
 # only the paths below (browser state, local images, per-user config)
 #data/browser-profile/
 #data/external-images/
@@ -42,6 +42,8 @@ Thumbs.db
 *.log
 
 ## Generated assets
-# Built by `npm run build:css` / MSBuild BuildTailwindCSS target — not committed.
+# Built by tools/tailwindcss.exe / MSBuild BuildTailwindCSS target — not committed.
 src/QBModsBrowser.Server/wwwroot/tailwind.css
-node_modules/
+
+## Standalone Tailwind CLI binary — allow this one exe despite the *.exe rule above.
+!tools/tailwindcss.exe

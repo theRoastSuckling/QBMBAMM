@@ -16,7 +16,7 @@ using Serilog.Formatting.Compact;
 internal static class Program
 {
     // Fixed listen URL; single-instance check and tray icon both use this.
-    const string AppUrl = "http://localhost:5000";
+    const string AppUrl = "http://localhost:33673";
     // When started via QBMBAMM.exe from bin/.../net9.0-windows, BaseDirectory is that folder; use the project
     // directory as content root so appsettings paths (e.g. ../../data) match `dotnet run`. Published layouts have no .csproj nearby, so we keep BaseDirectory.
     static string ResolveWebContentRoot()
